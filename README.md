@@ -1,8 +1,6 @@
 # cargo-tsync
 
-[![Repository](https://img.shields.io/badge/Repository-Wulf%2Fcargo--tsync-333?style=for-the-badge)](https://github.com/Wulf/cargo-tsync)
-
-[![License: MIT OR Apache-2.0](https://img.shields.io/crates/v/cargo-tsync.svg?style=for-the-badge)](https://crates.io/crates/cargo-tsync)
+<a href="https://crates.io/crates/cargo-tsync"><img src="https://img.shields.io/crates/v/cargo-tsync.svg?style=for-the-badge" height="20" alt="License: MIT OR Apache-2.0" /></a>
 
 A utility to generate types for other typed languages.
 

@@ -22,15 +22,16 @@ There are two parts to this:
    ```
    /// Cargo.toml
  
-   cargo_tsync = "X.Y.Z"
+   cargo-tsync = "X.Y.Z"
    ```
 
 # Usage
 
 Mark structs with `#[tsync]` as below:
 
-```rs
+```rust
 /// src/main.rs
+use cargo_tsync::{tsync};
 
 #[tsync]
 struct Book {

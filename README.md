@@ -9,9 +9,21 @@ Currently, only typescript is supported.
 
 # Install
 
-```
-cargo install cargo-tsync
-```
+There are two parts to this:
+
+1. A global CLI tool:
+
+   ```
+   cargo install cargo-tsync
+   ```
+
+2. The dependency for rust projects (to use the `#[tsync]` attribute; see usage below)
+
+   ```
+   /// Cargo.toml
+ 
+   cargo_tsync = "X.Y.Z"
+   ```
 
 # Usage
 

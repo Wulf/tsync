@@ -11,7 +11,7 @@ Currently, only typescript is supported.
 
 There are two parts to this:
 
-1. A global CLI tool:
+1. The CLI tool:
 
    ```
    cargo install tsync
@@ -31,7 +31,7 @@ Mark structs with `#[tsync]` as below:
 
 ```rust
 /// src/main.rs
-use cargo_tsync::{tsync};
+use tsync::tsync;
 
 #[tsync]
 struct Book {
@@ -46,10 +46,10 @@ struct Chapter {
 }
 ```
 
-Then use the tool:
+Then use the CLI tool:
 
 ```sh
-cargo tsync -i **/*.rs -o types.d.ts
+tsync -i **/*.rs -o types.d.ts
 ```
 
 And voilà!
@@ -70,7 +70,7 @@ interface Chapter {
 
 # Docs
 
-See `cargo tsync --help` for more information.
+See `tsync --help` for more information.
 
 Feel free to open tickets for support or feature requests.
 

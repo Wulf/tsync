@@ -1,0 +1,13 @@
+[package]
+name = "cargo-tsync"
+description = "A utility to generate types for other typed languages."
+version = "0.1.0"
+authors = ["Haris <4259838+Wulf@users.noreply.github.com>"]
+edition = "2018"
+
+[dependencies]
+structopt = "0.3.20"
+syn = { version = "1.0.48", features = ["full", "extra-traits"] }
+
+[lib]
+proc-macro = true

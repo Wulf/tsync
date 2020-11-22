@@ -1,6 +1,6 @@
-# cargo-tsync
+# tsync
 
-<a href="https://crates.io/crates/cargo-tsync"><img src="https://img.shields.io/crates/v/cargo-tsync.svg?style=for-the-badge" height="20" alt="License: MIT OR Apache-2.0" /></a>
+<a href="https://crates.io/crates/tsync"><img src="https://img.shields.io/crates/v/tsync.svg?style=for-the-badge" height="20" alt="License: MIT OR Apache-2.0" /></a>
 
 A utility to generate types for other typed languages.
 
@@ -14,7 +14,7 @@ There are two parts to this:
 1. A global CLI tool:
 
    ```
-   cargo install cargo-tsync
+   cargo install tsync
    ```
 
 2. The dependency for rust projects (to use the `#[tsync]` attribute; see usage below)
@@ -22,7 +22,7 @@ There are two parts to this:
    ```
    /// Cargo.toml
  
-   cargo-tsync = "X.Y.Z"
+   tsync = "X.Y.Z"
    ```
 
 # Usage

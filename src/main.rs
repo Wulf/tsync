@@ -13,7 +13,8 @@ use structopt::StructOpt;
 const DESCRIPTION: &'static str = env!("CARGO_PKG_DESCRIPTION");
 
 #[derive(Debug, StructOpt)]
-struct TsyncArgs {
+#[structopt(about = DESCRIPTION, after_help = "This command helps generate type information for other languages. Currently, only typescript is supported.")]
+struct Args {
     /// Activate debug mode
     #[structopt(long, help = "Dry-run, prints to stdout", short = "d", long = "debug")]
     debug: bool,
@@ -29,16 +30,6 @@ struct TsyncArgs {
     /// Output file, stdout if not present
     #[structopt(parse(from_os_str), short = "o", long = "output", help = "Required; file to write generated types to")]
     output: PathBuf,
-}
-
-#[derive(Debug, StructOpt)]
-#[structopt(bin_name = "cargo", about = DESCRIPTION)]
-enum Args {
-    #[structopt(
-        name = "tsync", 
-        after_help = "This command helps generate type information for other languages. Currently, only typescript is supported."
-    )]
-    TsyncArgs(TsyncArgs)
 }
 
 fn to_typsecript_type(gen_ty: &syn::GenericArgument) -> String {
@@ -99,92 +90,88 @@ fn main() {
 
     types.push_str("/* This file is generated and managed by tsync */\n");
 
-    match args {
-        Args::TsyncArgs(opt) => {
-            for input_path in opt.input {
-                if opt.debug {
-                    println!("processing rust file: {:?}", input_path.clone().into_os_string().into_string().unwrap());
-                }
-                let mut file = File::open(&input_path).expect("Unable to open file");
-                
-                let mut src = String::new();
-                file.read_to_string(&mut src).expect("Unable to read file");
+    for input_path in args.input {
+        if args.debug {
+            println!("processing rust file: {:?}", input_path.clone().into_os_string().into_string().unwrap());
+        }
+        let mut file = File::open(&input_path).expect("Unable to open file");
         
-                let syntax = syn::parse_file(&src).expect("Unable to parse file");
-                
-                for item in syntax.items {
-                    match item {
-                        syn::Item::Struct(exported_struct) => {
-                            let mut has_tsync_attribute = false;
-                            
-                            // this seems unnecessary -- simplify this later
-                            for attr in exported_struct.attrs {
-                                for segment in attr.path.segments {
-                                    if segment.ident.to_string() == "tsync" {
-                                        has_tsync_attribute = true;
-                                        break
-                                    }
-                                    if has_tsync_attribute { break }
-                                }
+        let mut src = String::new();
+        file.read_to_string(&mut src).expect("Unable to read file");
+
+        let syntax = syn::parse_file(&src).expect("Unable to parse file");
+        
+        for item in syntax.items {
+            match item {
+                syn::Item::Struct(exported_struct) => {
+                    let mut has_tsync_attribute = false;
+                    
+                    // this seems unnecessary -- simplify this later
+                    for attr in exported_struct.attrs {
+                        for segment in attr.path.segments {
+                            if segment.ident.to_string() == "tsync" {
+                                has_tsync_attribute = true;
+                                break
                             }
-        
-                            if opt.debug {
-                                if has_tsync_attribute {
-                                    println!("Encountered #[tsync] struct: {}", exported_struct.ident.to_string());
-                                } else {
-                                    println!("Encountered non-tsync struct: {}", exported_struct.ident.to_string());
-                                }
-                            }
-        
-                            if has_tsync_attribute {
-                                let x = format!("\ninterface {interface_name} {{\n", interface_name=exported_struct.ident.to_string());
-                                types.push_str(x.as_str());
-                                for field in exported_struct.fields {
-                                    let field_name = field.ident.unwrap().to_string();
-                                    let field_type: String = to_typescript_type(&field.ty);
-                                    types.push_str(format!("  {field_name}: {field_type}\n", field_name=field_name, field_type=field_type).as_str());
-                                }
-                                types.push_str("}\n");
-                            }
-                        },
-                        _ => { }
+                            if has_tsync_attribute { break }
+                        }
                     }
-                }
-            }
-            
-            if opt.debug {
-                println!("======================================");
-                println!("FINAL FILE:");
-                println!("======================================");
-                println!("{}", types);
-                println!("======================================");
-                println!("Note: Nothing is written in debug mode");
-                println!("======================================");
-            } else {
-                // Verify that the output file either doesn't exists or has been generated by tsync.
-                let original_file_path = Path::new(&opt.output);
-                if original_file_path.exists() {
-                    if !original_file_path.is_file() {
-                        panic!("Specified output path is a directory but must be a file.")
+
+                    if args.debug {
+                        if has_tsync_attribute {
+                            println!("Encountered #[tsync] struct: {}", exported_struct.ident.to_string());
+                        } else {
+                            println!("Encountered non-tsync struct: {}", exported_struct.ident.to_string());
+                        }
                     }
-                    let original_file = File::open(original_file_path).expect("Couldn't open output file");
-                    let mut buffer = BufReader::new(original_file);
-        
-                    let mut first_line = String::new();
-        
-                    buffer.read_line(&mut first_line).expect("Unable to read line");
-        
-                    if first_line.trim() != "/* This file is generated and managed by tsync */" {
-                        panic!("Aborting: specified output file exists but doesn't have \"/* This file is generated and managed by tsync */\" as the first line.")
+
+                    if has_tsync_attribute {
+                        let x = format!("\ninterface {interface_name} {{\n", interface_name=exported_struct.ident.to_string());
+                        types.push_str(x.as_str());
+                        for field in exported_struct.fields {
+                            let field_name = field.ident.unwrap().to_string();
+                            let field_type: String = to_typescript_type(&field.ty);
+                            types.push_str(format!("  {field_name}: {field_type}\n", field_name=field_name, field_type=field_type).as_str());
+                        }
+                        types.push_str("}\n");
                     }
-                }
-        
-                let mut file: File = File::create(&opt.output).expect("Unable to write to file");
-                match file.write_all(types.as_bytes()) {
-                    Ok(_) => println!("Successfully generated {} types, see {:#?}", opt.format, opt.output),
-                    Err(_) => println!("Failed to generate types, an error occurred.")
-                }
+                },
+                _ => { }
             }
         }
-    };
+    }
+    
+    if args.debug {
+        println!("======================================");
+        println!("FINAL FILE:");
+        println!("======================================");
+        println!("{}", types);
+        println!("======================================");
+        println!("Note: Nothing is written in debug mode");
+        println!("======================================");
+    } else {
+        // Verify that the output file either doesn't exists or has been generated by tsync.
+        let original_file_path = Path::new(&args.output);
+        if original_file_path.exists() {
+            if !original_file_path.is_file() {
+                panic!("Specified output path is a directory but must be a file.")
+            }
+            let original_file = File::open(original_file_path).expect("Couldn't open output file");
+            let mut buffer = BufReader::new(original_file);
+
+            let mut first_line = String::new();
+
+            buffer.read_line(&mut first_line).expect("Unable to read line");
+
+            if first_line.trim() != "/* This file is generated and managed by tsync */" {
+                panic!("Aborting: specified output file exists but doesn't have \"/* This file is generated and managed by tsync */\" as the first line.")
+            }
+        }
+
+        let mut file: File = File::create(&args.output).expect("Unable to write to file");
+        match file.write_all(types.as_bytes()) {
+            Ok(_) => println!("Successfully generated {} types, see {:#?}", args.format, args.output),
+            Err(_) => println!("Failed to generate types, an error occurred.")
+        }
+    }
 }

@@ -1,10 +1,13 @@
 # cargo-tsync
 
+[![Repository](https://img.shields.io/badge/Repository-Wulf%2Fcargo--tsync-333?style=for-the-badge)](https://github.com/Wulf/cargo-tsync)
+
+[![License: MIT OR Apache-2.0](https://img.shields.io/crates/v/cargo-tsync.svg?style=for-the-badge)](https://crates.io/crates/cargo-tsync)
+
 A utility to generate types for other typed languages.
 
 Currently, only typescript is supported.
 
-[![License: MIT OR Apache-2.0](https://img.shields.io/crates/l/cargo-tsync.svg?style=for-the-badge)](#license)
 
 # Install
 
@@ -16,7 +19,7 @@ cargo install cargo-tsync
 
 Mark structs with `#[tsync]` as below:
 
-```
+```rs
 /// src/main.rs
 
 #[tsync]
@@ -34,13 +37,13 @@ struct Chapter {
 
 Then use the tool:
 
-```
+```sh
 cargo tsync -i **/*.rs -o types.d.ts
 ```
 
 And voilà!
 
-```
+```ts
 /// types.d.ts
 
 interface Book {

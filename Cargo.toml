@@ -1,7 +1,12 @@
 [package]
 name = "cargo-tsync"
 description = "A utility to generate types for other typed languages."
-version = "0.1.0"
+version = "0.0.1"
+readme = "README.md"
+repository = "https://github.com/Wulf/cargo-tsync"
+license = "MIT OR Apache-2.0"
+keywords = ["typescript", "types", "generation", "macro"]
+categories = ["command-line-utilities", "development-tools", "development-tools::cargo-plugins", "development-tools::ffi", "web-programming"]
 authors = ["Haris <4259838+Wulf@users.noreply.github.com>"]
 edition = "2018"
 
@@ -11,3 +16,8 @@ syn = { version = "1.0.48", features = ["full", "extra-traits"] }
 
 [lib]
 proc-macro = true
+
+[[bin]]
+name = "cargo-tsync"
+test = false
+path = "src/main.rs"

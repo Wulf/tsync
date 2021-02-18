@@ -50,7 +50,7 @@ struct Chapter {
 Then use the CLI tool:
 
 ```sh
-tsync -i **/*.rs -o types.d.ts
+tsync -i src/main.rs -o types.d.ts
 ```
 
 And voilà!
@@ -70,6 +70,13 @@ interface Chapter {
   title: string
   pages: number
 }
+```
+
+_**Note**: globs don't recurse on all platforms so try double or triple globbing!_
+```
+tsync -i **/*.rs -o types.d.ts
+tsync -i **/**/*.rs -o types.d.ts
+tsync -i **/**/**/*.rs -o types.d.ts
 ```
 
 # Docs

@@ -71,6 +71,11 @@ fn to_typescript_type(ty: &syn::Type) -> String {
                 "String" => "string".to_string(),
                 "NaiveDateTime" => "Date".to_string(),
                 "DateTime" => "Date".to_string(),
+                "Option" => match arguments {
+                    syn::PathArguments::Parenthesized(parenthesized_argument) => format!("{:?}", parenthesized_argument),
+                    syn::PathArguments::AngleBracketed(anglebracketed_argument) => format!("{} | undefined", to_typsecript_type(anglebracketed_argument.args.first().unwrap())),
+                    _ => "unknown".to_string()
+                },
                 "Vec" => match arguments {
                     syn::PathArguments::Parenthesized(parenthesized_argument) => format!("{:?}", parenthesized_argument),
                     syn::PathArguments::AngleBracketed(anglebracketed_argument) => format!("Array<{}>", to_typsecript_type(anglebracketed_argument.args.first().unwrap())),

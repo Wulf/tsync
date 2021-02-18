@@ -36,7 +36,8 @@ use tsync::tsync;
 #[tsync]
 struct Book {
   name: String,
-  chapters: Vec<Chapter>
+  chapters: Vec<Chapter>,
+  user_reviews: Option<Vec<String>>
 }
 
 #[tsync]
@@ -57,9 +58,12 @@ And voilà!
 ```ts
 /// types.d.ts
 
+/* This file is generated and managed by tsync */
+
 interface Book {
   name: string
   chapters: Array<Chapter>
+  user_reviews: Array<string> | undefined
 }
 
 interface Chapter {

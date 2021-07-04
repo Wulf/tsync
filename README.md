@@ -73,10 +73,16 @@ interface Chapter {
 ```
 
 _**Note**: globs don't recurse on all platforms so try double or triple globbing!_
-```
+```sh
 tsync -i **/*.rs -o types.d.ts
 tsync -i **/**/*.rs -o types.d.ts
 tsync -i **/**/**/*.rs -o types.d.ts
+```
+
+_**Note**: it might help to create multiple typing files for your project:_
+```sh
+tsync -i src/models/**/*.rs -o models.d.ts
+tsync -i src/api/**/*.rs -o api.d.ts
 ```
 
 # Docs

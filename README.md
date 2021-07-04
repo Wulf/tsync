@@ -85,6 +85,10 @@ tsync -i src/models/**/*.rs -o models.d.ts
 tsync -i src/api/**/*.rs -o api.d.ts
 ```
 
+# Errors
+
+A list of files which can't be opened or parsed successfully are listed after executing `tsync`. For other errors, using the `--debug` flag may help find errors.
+
 # Docs
 
 See `tsync --help` for more information.

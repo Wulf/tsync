@@ -39,7 +39,6 @@ fn to_typsecript_type(gen_ty: &syn::GenericArgument) -> String {
     }
 }
 
-
 fn to_typescript_type(ty: &syn::Type) -> String {
     match ty {
         syn::Type::Reference(p) => {
@@ -90,7 +89,7 @@ fn to_typescript_type(ty: &syn::Type) -> String {
 
 fn main() {
     let args: Args = Args::from_args();
-
+    let mut unprocessed_files: Vec<PathBuf> = Vec::<PathBuf>::new();
     let mut types: String = String::new();
 
     types.push_str("/* This file is generated and managed by tsync */\n");
@@ -99,12 +98,30 @@ fn main() {
         if args.debug {
             println!("processing rust file: {:?}", input_path.clone().into_os_string().into_string().unwrap());
         }
-        let mut file = File::open(&input_path).expect("Unable to open file");
+
+        let mut file = File::open(&input_path);
+
+        if file.is_err() {
+            unprocessed_files.push(input_path);
+            continue;
+        }
+
+        let mut file = file.unwrap();
         
         let mut src = String::new();
-        file.read_to_string(&mut src).expect("Unable to read file");
+        if file.read_to_string(&mut src).is_err() {
+            unprocessed_files.push(input_path);
+            continue;
+        }
 
-        let syntax = syn::parse_file(&src).expect("Unable to parse file");
+        let syntax = syn::parse_file(&src);
+
+        if syntax.is_err() {
+            unprocessed_files.push(input_path);
+            continue;
+        }
+
+        let syntax = syntax.unwrap();
         
         for item in syntax.items {
             match item {
@@ -178,5 +195,13 @@ fn main() {
             Ok(_) => println!("Successfully generated {} types, see {:#?}", args.format, args.output),
             Err(_) => println!("Failed to generate types, an error occurred.")
         }
+    }
+
+    if unprocessed_files.len() > 0 {
+        println!("Could not parse the following files:");
+    }
+
+    for unprocessed_file in unprocessed_files {
+        println!("• {:#?}", file=unprocessed_file);
     }
 }

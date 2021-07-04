@@ -167,7 +167,7 @@ dependencies = [
 
 [[package]]
 name = "tsync"
-version = "1.0.3"
+version = "1.0.4"
 dependencies = [
  "structopt",
  "syn",

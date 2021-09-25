@@ -30,9 +30,10 @@ There are two parts to this:
 Mark structs with `#[tsync]` as below:
 
 ```rust
-/// src/main.rs
+/// rust_file.rs
 use tsync::tsync;
 
+/// Doc comments are preserved too!
 #[tsync]
 struct Book {
   name: String,
@@ -45,12 +46,17 @@ struct Chapter {
   title: String,
   pages: u32
 }
+
+
+#[tsync]
+/// Time in UTC seconds
+type UTC = usize;
 ```
 
 Then use the CLI tool:
 
 ```sh
-tsync -i src/main.rs -o types.d.ts
+tsync -i rust_file.rs -o types.d.ts
 ```
 
 And voilà!
@@ -60,6 +66,7 @@ And voilà!
 
 /* This file is generated and managed by tsync */
 
+// Doc comments are preserved too!
 interface Book {
   name: string
   chapters: Array<Chapter>
@@ -70,6 +77,10 @@ interface Chapter {
   title: string
   pages: number
 }
+
+// Time in UTC seconds
+type UTC = number
+
 ```
 
 _**Note**: globs don't recurse on all platforms so try double or triple globbing!_

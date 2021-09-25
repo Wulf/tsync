@@ -87,6 +87,43 @@ fn to_typescript_type(ty: &syn::Type) -> String {
     }
 }
 
+fn has_tsync_attribute(attributes: &Vec<syn::Attribute>) -> bool {
+    attributes.iter().any(
+        |attr| attr.path.segments.iter().any(
+            |segment| segment.ident.to_string() == "tsync"
+        )
+    )
+}
+
+fn get_comments(attributes: Vec<syn::Attribute>) -> Vec<String> {
+    let mut comments: Vec<String> = vec![];
+    
+    for attribute in attributes {
+        let mut is_doc = false;
+        for segment in attribute.path.segments {
+            if segment.ident.to_string() == "doc" {
+                is_doc = true;
+                break;
+            }
+        }
+
+        if is_doc {
+            for token in attribute.tokens {
+                match token {
+                    syn::__private::quote::__private::TokenTree::Literal(comment) => {
+                        let comment = comment.to_string();
+                        let comment = comment[1..comment.len()-1].trim();
+                        comments.push(comment.to_string());
+                    },
+                    _ => { /* Do nothing */}
+                }
+            }
+        }
+    }
+    
+    comments
+}
+
 fn main() {
     let args: Args = Args::from_args();
     let mut unprocessed_files: Vec<PathBuf> = Vec::<PathBuf>::new();
@@ -99,7 +136,7 @@ fn main() {
             println!("processing rust file: {:?}", input_path.clone().into_os_string().into_string().unwrap());
         }
 
-        let mut file = File::open(&input_path);
+        let file = File::open(&input_path);
 
         if file.is_err() {
             unprocessed_files.push(input_path);
@@ -126,18 +163,7 @@ fn main() {
         for item in syntax.items {
             match item {
                 syn::Item::Struct(exported_struct) => {
-                    let mut has_tsync_attribute = false;
-                    
-                    // this seems unnecessary -- simplify this later
-                    for attr in exported_struct.attrs {
-                        for segment in attr.path.segments {
-                            if segment.ident.to_string() == "tsync" {
-                                has_tsync_attribute = true;
-                                break
-                            }
-                            if has_tsync_attribute { break }
-                        }
-                    }
+                    let has_tsync_attribute = has_tsync_attribute(&exported_struct.attrs);
 
                     if args.debug {
                         if has_tsync_attribute {
@@ -148,14 +174,60 @@ fn main() {
                     }
 
                     if has_tsync_attribute {
-                        let x = format!("\ninterface {interface_name} {{\n", interface_name=exported_struct.ident.to_string());
-                        types.push_str(x.as_str());
+                        types.push('\n');
+
+                        let comments = get_comments(exported_struct.attrs);
+                        if comments.len() > 0 {
+                            for comment in comments {
+                                types.push_str(&format!("// {}\n", &comment))
+                            }
+                        }
+
+                        types.push_str(&format!("interface {interface_name} {{\n", interface_name=exported_struct.ident.to_string()));
                         for field in exported_struct.fields {
+                            let comments = get_comments(field.attrs);
+                            if comments.len() > 0 {
+                                for comment in comments {
+                                    types.push_str(&format!("  // {}\n", &comment))
+                                }
+                            }   
                             let field_name = field.ident.unwrap().to_string();
                             let field_type: String = to_typescript_type(&field.ty);
-                            types.push_str(format!("  {field_name}: {field_type}\n", field_name=field_name, field_type=field_type).as_str());
+                            types.push_str(&format!("  {field_name}: {field_type}\n", field_name=field_name, field_type=field_type));
                         }
-                        types.push_str("}\n");
+                        types.push_str("}");
+
+                        types.push('\n');
+                    }
+                },
+                syn::Item::Type(exported_type) => {
+                    let has_tsync_attribute = has_tsync_attribute(&exported_type.attrs);
+
+                    if args.debug {
+                        if has_tsync_attribute {
+                            println!("Encountered #[tsync] type: {}", exported_type.ident.to_string());
+                        } else {
+                            println!("Encountered non-tsync type: {}", exported_type.ident.to_string());
+                        }
+                    }
+
+                    if has_tsync_attribute {
+                        types.push_str("\n");
+
+                        let name = exported_type.ident.to_string();
+                        let ty: String = to_typescript_type(&exported_type.ty);
+                        let comments = get_comments(exported_type.attrs);
+                        if comments.len() > 0 {
+                            for comment in comments {
+                                types.push_str(&format!("// {}\n", &comment))
+                            }
+                        }
+                        types.push_str(format!("type {name} = {ty}",
+                            name=name,
+                            ty=ty
+                        ).as_str());
+
+                        types.push_str("\n");
                     }
                 },
                 _ => { }

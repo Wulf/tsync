@@ -2,6 +2,8 @@ extern crate syn;
 
 use std::io::prelude::*;
 
+// Add this to Cargo.toml: gitignore = "1.0.7"
+// use gitignore; TODO: add flag which can parse and apply .gitignore
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Read;
@@ -29,6 +31,11 @@ struct Args {
     )]
     format: String,
 
+    // #[structopt(
+    //     long = "use-ignore-file",
+    //     help = "Optionally ignore files with a .gitignore (or similar file); for example: --use-ignore-file=.gitignore"
+    // )]
+    // use_ignore_file: Option<PathBuf>,
     /// Input file
     #[structopt(
         short = "i",
@@ -149,9 +156,10 @@ fn get_comments(attributes: Vec<syn::Attribute>) -> Vec<String> {
     comments
 }
 
-struct BuildState {
+struct BuildState /*<'a>*/ {
     pub types: String,
     pub unprocessed_files: Vec<PathBuf>,
+    // pub ignore_file_config: Option<gitignore::File<'a>>,
 }
 
 fn process_rust_file(args: Args, input_path: PathBuf, state: &mut BuildState) {
@@ -279,11 +287,30 @@ fn process_rust_file(args: Args, input_path: PathBuf, state: &mut BuildState) {
     }
 }
 
+// fn should_ignore_file(ignore_file: &gitignore::File, entry: &DirEntry) -> bool {
+//     let path = entry.path();
+
+//     ignore_file.is_excluded(&path).unwrap_or(false)
+// }
+
 fn main() {
     let args: Args = Args::from_args();
     let mut state: BuildState = BuildState {
         types: String::new(),
         unprocessed_files: Vec::<PathBuf>::new(),
+        // ignore_file_config: if args.clone().use_ignore_file.is_some() {
+        //     match gitignore::File::new(&args.use_ignore_file.unwrap()) {
+        //         Ok(gitignore) => Some(gitignore),
+        //         Err(err) => {
+        //             if args.debug {
+        //                 println!("Error: failed to use ignore file! {:#?}", err);
+        //             }
+        //             None
+        //         }
+        //     }
+        // } else {
+        //     None
+        // },
     };
 
     state
@@ -305,7 +332,12 @@ fn main() {
                 match entry {
                     Ok(dir_entry) => {
                         let path = dir_entry.into_path();
-                        process_rust_file(args.clone(), path, &mut state);
+                        if !path.is_dir() {
+                            // skip dir files because they're going to be recursively crawled by WalkDir
+                            process_rust_file(args.clone(), path, &mut state);
+                        } else if args.debug {
+                            println!("Encountered directory `{:#?}`", path);
+                        }
                     }
                     Err(_) => {
                         println!(

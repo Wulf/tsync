@@ -6,7 +6,6 @@ A utility to generate types for other typed languages.
 
 Currently, only typescript is supported.
 
-
 # Install
 
 There are two parts to this:
@@ -21,7 +20,7 @@ There are two parts to this:
 
    ```
    /// Cargo.toml
- 
+
    tsync = "X.Y.Z"
    ```
 
@@ -80,10 +79,10 @@ interface Chapter {
 
 // Time in UTC seconds
 type UTC = number
-
 ```
 
 _**Note**: globs don't recurse on all platforms so try double or triple globbing!_
+
 ```sh
 tsync -i **/*.rs -o types.d.ts
 tsync -i **/**/*.rs -o types.d.ts
@@ -91,6 +90,7 @@ tsync -i **/**/**/*.rs -o types.d.ts
 ```
 
 _**Note**: it might help to create multiple typing files for your project:_
+
 ```sh
 tsync -i src/models/**/*.rs -o models.d.ts
 tsync -i src/api/**/*.rs -o api.d.ts
@@ -105,6 +105,11 @@ A list of files which can't be opened or parsed successfully are listed after ex
 See `tsync --help` for more information.
 
 Feel free to open tickets for support or feature requests.
+
+# Development/Testing
+
+Use `./test/test_all.sh` to run tests.
+After running the test, there should be no unexpected changes to files in `./test` (use `git status` and `git diff` to see if there were any changes).
 
 # License
 

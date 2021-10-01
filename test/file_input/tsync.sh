@@ -2,4 +2,6 @@
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
-cargo run -- -i "$SCRIPT_DIR/rust.rs" -o "$SCRIPT_DIR/typescript.d.ts"
+cd $SCRIPT_DIR
+
+cargo run -- -i rust.rs -o typescript.d.ts

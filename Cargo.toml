@@ -13,6 +13,7 @@ edition = "2018"
 [dependencies]
 structopt = "0.3.22"
 syn = { version = "1.0.75", features = ["full", "extra-traits"] }
+walkdir = "2.3.2"
 
 [lib]
 proc-macro = true

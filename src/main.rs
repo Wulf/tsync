@@ -9,6 +9,7 @@ use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 use structopt::StructOpt;
+use walkdir::WalkDir;
 
 const DESCRIPTION: &'static str = env!("CARGO_PKG_DESCRIPTION");
 
@@ -290,7 +291,34 @@ fn main() {
         .push_str("/* This file is generated and managed by tsync */\n");
 
     for input_path in args.clone().input {
-        process_rust_file(args.clone(), input_path, &mut state);
+        if !input_path.exists() {
+            if args.debug {
+                println!("Path `{:#?}` does not exist", input_path);
+            }
+
+            state.unprocessed_files.push(input_path);
+            continue;
+        }
+
+        if input_path.is_dir() {
+            for entry in WalkDir::new(input_path.clone()).sort_by_file_name() {
+                match entry {
+                    Ok(dir_entry) => {
+                        let path = dir_entry.into_path();
+                        process_rust_file(args.clone(), path, &mut state);
+                    }
+                    Err(_) => {
+                        println!(
+                            "An error occurred whilst walking directory `{:#?}`...",
+                            input_path.clone()
+                        );
+                        continue;
+                    }
+                }
+            }
+        } else {
+            process_rust_file(args.clone(), input_path, &mut state);
+        }
     }
 
     if args.debug {

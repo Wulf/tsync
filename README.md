@@ -2,9 +2,7 @@
 
 <a href="https://crates.io/crates/tsync"><img src="https://img.shields.io/crates/v/tsync.svg?style=for-the-badge" height="20" alt="License: MIT OR Apache-2.0" /></a>
 
-A utility to generate types for other typed languages.
-
-Currently, only typescript is supported.
+A utility to generate typescript types from rust code.
 
 # Install
 
@@ -29,7 +27,7 @@ There are two parts to this:
 Mark structs with `#[tsync]` as below:
 
 ```rust
-/// rust_file.rs
+/// src/main.rs
 use tsync::tsync;
 
 /// Doc comments are preserved too!
@@ -55,7 +53,7 @@ type UTC = usize;
 Then use the CLI tool:
 
 ```sh
-tsync -i rust_file.rs -o types.d.ts
+tsync -i ./src -o types.d.ts
 ```
 
 And voilà!
@@ -81,24 +79,26 @@ interface Chapter {
 type UTC = number
 ```
 
-_**Note**: globs don't recurse on all platforms so try double or triple globbing!_
+## Multiple Inputs
+
+You can specify many inputs (directories and/or files) using the `-i` flag multiple times, like so:
 
 ```sh
-tsync -i **/*.rs -o types.d.ts
-tsync -i **/**/*.rs -o types.d.ts
-tsync -i **/**/**/*.rs -o types.d.ts
+tsync -i directory1 -i directory2 -o types.d.ts
 ```
 
-_**Note**: it might help to create multiple typing files for your project:_
+## Multiple Outputs
+
+It might help to create multiple typing files for your project. It's easy, just call tsync multiple times:
 
 ```sh
-tsync -i src/models/**/*.rs -o models.d.ts
-tsync -i src/api/**/*.rs -o api.d.ts
+tsync -i src/models -o models.d.ts
+tsync -i src/api -o api.d.ts
 ```
 
 # Errors
 
-A list of files which can't be opened or parsed successfully are listed after executing `tsync`. For other errors, using the `--debug` flag may help find errors.
+A list of files which can't be opened or parsed successfully are listed after executing `tsync`. For other errors, try using the `--debug` flag to pinpoint issues. Please use the Github issue tracker to report any issues.
 
 # Docs
 

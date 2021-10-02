@@ -1,3 +1,5 @@
+// TODO: add .gitignore (and other ignore files) parsing functinality
+// TODO: add "create-module" functionality (so generated types can be under a specified namespace like Rust.MyType)
 extern crate syn;
 
 use std::io::prelude::*;
@@ -332,9 +334,17 @@ fn main() {
                 match entry {
                     Ok(dir_entry) => {
                         let path = dir_entry.into_path();
+
+                        // skip dir files because they're going to be recursively crawled by WalkDir
                         if !path.is_dir() {
-                            // skip dir files because they're going to be recursively crawled by WalkDir
-                            process_rust_file(args.clone(), path, &mut state);
+                            // make sure it is a rust file
+                            let extension = path.extension();
+                            if extension.is_some() && extension.unwrap().eq_ignore_ascii_case("rs")
+                            {
+                                process_rust_file(args.clone(), path, &mut state);
+                            } else if args.debug {
+                                println!("Encountered non-rust file `{:#?}`", path);
+                            }
                         } else if args.debug {
                             println!("Encountered directory `{:#?}`", path);
                         }

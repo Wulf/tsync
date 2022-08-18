@@ -158,6 +158,29 @@ fn get_comments(attributes: Vec<syn::Attribute>) -> Vec<String> {
     comments
 }
 
+fn build_indentation(indentation_amount: i8) -> String {
+    let mut indent = "".to_string();
+    for _ in 0..indentation_amount {
+        indent.push(' ');
+    }
+    indent
+}
+
+fn write_comments(state: &mut BuildState, comments: &Vec<String>, indentation_amount: i8) {
+    let indentation = build_indentation(indentation_amount);
+    match comments.len() {
+        0 => (),
+        1 => state.types.push_str(&format!("{}/** {} */\n", indentation, &comments[0])),
+        _ => {
+            state.types.push_str(&format!("{}/**\n", indentation));
+            for comment in comments {
+                state.types.push_str(&format!("{} * {}\n", indentation, &comment))
+            }
+            state.types.push_str(&format!("{} */\n", indentation))
+        }
+    }
+}
+
 struct BuildState /*<'a>*/ {
     pub types: String,
     pub unprocessed_files: Vec<PathBuf>,
@@ -219,11 +242,7 @@ fn process_rust_file(args: Args, input_path: PathBuf, state: &mut BuildState) {
                     state.types.push('\n');
 
                     let comments = get_comments(exported_struct.attrs);
-                    if comments.len() > 0 {
-                        for comment in comments {
-                            state.types.push_str(&format!("// {}\n", &comment))
-                        }
-                    }
+                    write_comments(state, &comments, 0);
 
                     state.types.push_str(&format!(
                         "interface {interface_name} {{\n",
@@ -231,11 +250,7 @@ fn process_rust_file(args: Args, input_path: PathBuf, state: &mut BuildState) {
                     ));
                     for field in exported_struct.fields {
                         let comments = get_comments(field.attrs);
-                        if comments.len() > 0 {
-                            for comment in comments {
-                                state.types.push_str(&format!("  // {}\n", &comment))
-                            }
-                        }
+                        write_comments(state, &comments, 2);
                         let field_name = field.ident.unwrap().to_string();
                         let field_type: String = to_typescript_type(&field.ty);
                         state.types.push_str(&format!(
@@ -272,11 +287,7 @@ fn process_rust_file(args: Args, input_path: PathBuf, state: &mut BuildState) {
                     let name = exported_type.ident.to_string();
                     let ty: String = to_typescript_type(&exported_type.ty);
                     let comments = get_comments(exported_type.attrs);
-                    if comments.len() > 0 {
-                        for comment in comments {
-                            state.types.push_str(&format!("// {}\n", &comment))
-                        }
-                    }
+                    write_comments(state, &comments, 0);
                     state
                         .types
                         .push_str(format!("type {name} = {ty}", name = name, ty = ty).as_str());

@@ -1,7 +1,7 @@
 [package]
 name = "tsync"
 description = "Generate typescript types from rust code."
-version = "1.2.1"
+version = "1.3.0"
 readme = "README.md"
 repository = "https://github.com/Wulf/tsync"
 license = "MIT OR Apache-2.0"

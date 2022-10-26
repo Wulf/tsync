@@ -10,7 +10,7 @@ interface Book {
    * Reviews of the book
    * by users.
    */
-  user_reviews: Array<string> | undefined
+  user_reviews?: Array<string>
 }
 
 /**

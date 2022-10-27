@@ -57,14 +57,29 @@ struct Args {
     output: PathBuf,
 }
 
-fn to_typsecript_type(gen_ty: &syn::GenericArgument) -> String {
+fn to_typsecript_type(gen_ty: &syn::GenericArgument) -> TsType {
     match gen_ty {
         syn::GenericArgument::Type(ty) => to_typescript_type(ty),
-        _ => "unknown".to_string(),
+        _ => "unknown".to_string().into(),
     }
 }
 
-fn to_typescript_type(ty: &syn::Type) -> String {
+#[derive(Debug)]
+struct TsType {
+    ts_type: String,
+    is_optional: bool,
+}
+
+impl From<String> for TsType {
+    fn from(ts_type: String) -> TsType {
+        TsType {
+            ts_type,
+            is_optional: false,
+        }
+    }
+}
+
+fn to_typescript_type(ty: &syn::Type) -> TsType {
     match ty {
         syn::Type::Reference(p) => to_typescript_type(&*p.elem),
         syn::Type::Path(p) => {
@@ -73,35 +88,38 @@ fn to_typescript_type(ty: &syn::Type) -> String {
             let arguments = &segment.arguments;
             let identifier = ident.to_string();
             match identifier.as_str() {
-                "i8" => "number".to_string(),
-                "u8" => "number".to_string(),
-                "i16" => "number".to_string(),
-                "u16" => "number".to_string(),
-                "i32" => "number".to_string(),
-                "u32" => "number".to_string(),
-                "i64" => "number".to_string(),
-                "u64" => "number".to_string(),
-                "i128" => "number".to_string(),
-                "u128" => "number".to_string(),
-                "isize" => "number".to_string(),
-                "usize" => "number".to_string(),
-                "f32" => "number".to_string(),
-                "f64" => "number".to_string(),
-                "bool" => "boolean".to_string(),
-                "char" => "string".to_string(),
-                "str" => "string".to_string(),
-                "String" => "string".to_string(),
-                "NaiveDateTime" => "Date".to_string(),
-                "DateTime" => "Date".to_string(),
-                "Option" => match arguments {
-                    syn::PathArguments::Parenthesized(parenthesized_argument) => {
-                        format!("{:?}", parenthesized_argument)
-                    }
-                    syn::PathArguments::AngleBracketed(anglebracketed_argument) => format!(
-                        "{} | undefined",
-                        to_typsecript_type(anglebracketed_argument.args.first().unwrap())
-                    ),
-                    _ => "unknown".to_string(),
+                "i8" => "number".to_string().into(),
+                "u8" => "number".to_string().into(),
+                "i16" => "number".to_string().into(),
+                "u16" => "number".to_string().into(),
+                "i32" => "number".to_string().into(),
+                "u32" => "number".to_string().into(),
+                "i64" => "number".to_string().into(),
+                "u64" => "number".to_string().into(),
+                "i128" => "number".to_string().into(),
+                "u128" => "number".to_string().into(),
+                "isize" => "number".to_string().into(),
+                "usize" => "number".to_string().into(),
+                "f32" => "number".to_string().into(),
+                "f64" => "number".to_string().into(),
+                "bool" => "boolean".to_string().into(),
+                "char" => "string".to_string().into(),
+                "str" => "string".to_string().into(),
+                "String" => "string".to_string().into(),
+                "NaiveDateTime" => "Date".to_string().into(),
+                "DateTime" => "Date".to_string().into(),
+                "Option" => TsType {
+                    is_optional: true,
+                    ts_type: match arguments {
+                        syn::PathArguments::Parenthesized(parenthesized_argument) => {
+                            format!("{:?}", parenthesized_argument)
+                        }
+                        syn::PathArguments::AngleBracketed(anglebracketed_argument) => {
+                            to_typsecript_type(anglebracketed_argument.args.first().unwrap())
+                                .ts_type
+                        }
+                        _ => "unknown".to_string(),
+                    },
                 },
                 "Vec" => match arguments {
                     syn::PathArguments::Parenthesized(parenthesized_argument) => {
@@ -109,14 +127,17 @@ fn to_typescript_type(ty: &syn::Type) -> String {
                     }
                     syn::PathArguments::AngleBracketed(anglebracketed_argument) => format!(
                         "Array<{}>",
-                        to_typsecript_type(anglebracketed_argument.args.first().unwrap())
+                        match to_typsecript_type(anglebracketed_argument.args.first().unwrap()) {
+                            TsType{ is_optional: true, ts_type } => format!("{} | undefined", ts_type),
+                            TsType{ is_optional: false, ts_type } => ts_type
+                        }
                     ),
                     _ => "unknown".to_string(),
-                },
-                _ => identifier.to_string(),
+                }.into(),
+                _ => identifier.to_string().into(),
             }
         }
-        _ => "unknown".to_string(),
+        _ => "unknown".to_string().into(),
     }
 }
 
@@ -252,11 +273,12 @@ fn process_rust_file(args: Args, input_path: PathBuf, state: &mut BuildState) {
                         let comments = get_comments(field.attrs);
                         write_comments(state, &comments, 2);
                         let field_name = field.ident.unwrap().to_string();
-                        let field_type: String = to_typescript_type(&field.ty);
+                        let field_type = to_typescript_type(&field.ty);
                         state.types.push_str(&format!(
-                            "  {field_name}: {field_type}\n",
+                            "  {field_name}{optional_parameter_token}: {field_type}\n",
                             field_name = field_name,
-                            field_type = field_type
+                            optional_parameter_token = if field_type.is_optional { "?" } else { "" },
+                            field_type = field_type.ts_type
                         ));
                     }
                     state.types.push_str("}");
@@ -285,12 +307,12 @@ fn process_rust_file(args: Args, input_path: PathBuf, state: &mut BuildState) {
                     state.types.push_str("\n");
 
                     let name = exported_type.ident.to_string();
-                    let ty: String = to_typescript_type(&exported_type.ty);
+                    let ty = to_typescript_type(&exported_type.ty);
                     let comments = get_comments(exported_type.attrs);
                     write_comments(state, &comments, 0);
                     state
                         .types
-                        .push_str(format!("type {name} = {ty}", name = name, ty = ty).as_str());
+                        .push_str(format!("type {name} = {ty}", name = name, ty = ty.ts_type).as_str());
 
                     state.types.push_str("\n");
                 }

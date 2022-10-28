@@ -26,3 +26,11 @@ struct Chapter {
 #[tsync]
 /// Time in UTC seconds
 type UTC = usize;
+
+
+#[tsync]
+/// Generic struct test
+struct PaginationResult<T> {
+  items: Vec<T>,
+  total_items: number
+}

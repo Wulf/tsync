@@ -13,6 +13,7 @@ use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 use structopt::StructOpt;
+use syn::{GenericParam, ItemStruct};
 use walkdir::WalkDir;
 
 const DESCRIPTION: &'static str = env!("CARGO_PKG_DESCRIPTION");
@@ -208,6 +209,25 @@ struct BuildState /*<'a>*/ {
     // pub ignore_file_config: Option<gitignore::File<'a>>,
 }
 
+fn extract_struct_generics(s: ItemStruct) -> String {
+    let mut generic_params: Vec<String> = vec![];
+
+    for generic_param in s.generics.params {
+        match generic_param {
+            GenericParam::Type(ty) => {
+                generic_params.push(ty.ident.to_string())
+            },
+            _ => {}
+        }
+    }
+
+    if generic_params.len() == 0 {
+        "".to_string()
+    } else {
+        format!("<{list}>", list = generic_params.join(", "))
+    }
+}
+
 fn process_rust_file(args: Args, input_path: PathBuf, state: &mut BuildState) {
     if args.debug {
         println!(
@@ -262,12 +282,13 @@ fn process_rust_file(args: Args, input_path: PathBuf, state: &mut BuildState) {
                 if has_tsync_attribute {
                     state.types.push('\n');
 
-                    let comments = get_comments(exported_struct.attrs);
+                    let comments = get_comments(exported_struct.clone().attrs);
                     write_comments(state, &comments, 0);
 
                     state.types.push_str(&format!(
-                        "interface {interface_name} {{\n",
-                        interface_name = exported_struct.ident.to_string()
+                        "interface {interface_name}{generics} {{\n",
+                        interface_name = exported_struct.clone().ident.to_string(),
+                        generics = extract_struct_generics(exported_struct.clone())
                     ));
                     for field in exported_struct.fields {
                         let comments = get_comments(field.attrs);

@@ -1,0 +1,14 @@
+[package]
+name = "tsync-macro"
+version = "0.1.0"
+edition = "2021"
+description = "Macros for tsync (see https://github.com/Wulf/tsync)"
+license = "MIT OR Apache-2.0"
+readme = "../README.md"
+
+[lib]
+proc-macro = true
+name = "tsync_macro"
+path = "src/lib.rs"
+
+[dependencies]

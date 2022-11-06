@@ -96,6 +96,54 @@ tsync -i src/models -o models.d.ts
 tsync -i src/api -o api.d.ts
 ```
 
+# Usage as a library
+
+In the case that installing `tsync` globally isn't an option (or causes other concerns), you can use it as a library.
+
+1. Add the library to your project:
+
+   ```sh
+   cargo add tsync@1
+   ```
+
+2. Create a new binary in your project which uses the crate (for example, `bin/tsync.rs`):
+   
+   ```rust
+   // bin/tsync.rs
+
+   use std::path::PathBuf;
+   
+   pub fn main() {
+   let dir = env!("CARGO_MANIFEST_DIR");
+   
+       let inputs = vec![PathBuf::from_iter([dir, "backend"])];
+       let output = PathBuf::from_iter([dir, "frontend/src/types/rust.d.ts"]);
+   
+       tsync::generate_typescript_defs(inputs, output, false);
+   }
+   ```
+
+3. Create a `Cargo.toml` binary entry:
+   
+   ```toml
+   [[bin]]
+   name = "tsync"
+   path = "bin/tsync.rs"
+   ```
+
+4. Execute!
+
+   ```sh
+   cargo run --bin tsync
+   ```
+
+**Protip**: to use `cargo tsync`, create an alias in `.cargo/config`:
+
+   ```toml
+   [alias]
+   tsync="run --bin tsync"
+   ```
+
 # Errors
 
 A list of files which can't be opened or parsed successfully are listed after executing `tsync`. For other errors, try using the `--debug` flag to pinpoint issues. Please use the Github issue tracker to report any issues.

@@ -1,4 +1,4 @@
-use syn::{NestedMeta, __private::ToTokens};
+use syn::NestedMeta;
 
 pub fn has_attribute(needle: &str, attributes: &Vec<syn::Attribute>) -> bool {
     attributes.iter().any(|attr| {

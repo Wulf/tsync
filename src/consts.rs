@@ -3,7 +3,7 @@ use syn::__private::ToTokens;
 use super::utils;
 use crate::BuildState;
 
-// maybe this could become a triat implemented on syn::Item types ?? like ToTypescript
+// maybe this could become a triat implemented on syn::Item types ? like ToTypescript
 // were item is &self
 pub fn process(item: &syn::ItemConst, state: &mut BuildState, debug: bool) {
     // this currently only supports literals
@@ -39,7 +39,9 @@ pub fn process(item: &syn::ItemConst, state: &mut BuildState, debug: bool) {
             state.types.push_str("\n");
             let comments = utils::get_comments(item.attrs.to_owned());
             state.write_comments(&comments, 0);
-            state.types.push_str(&format!("const {} = {};", name, body));
+            state
+                .types
+                .push_str(&format!("export const {} = {};", name, body));
             state.types.push_str("\n");
         }
         _ => {

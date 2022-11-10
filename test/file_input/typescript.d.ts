@@ -33,18 +33,18 @@ interface PaginationResult<T> {
 }
 
 /** Test integer */
-const CONST_TEST_1 = 0;
+export const CONST_TEST_1 = 0;
 
 /** Shouldn't compile but should convert */
-const CONST_TEST_2 = 0.0;
+export const CONST_TEST_2 = 0.0;
 
 /** Valid Rust but not valid typescript would be misleading if it made it into normal string ? */
-const CONST_TEST_3 = b"Hello";
+export const CONST_TEST_3 = b"Hello";
 
 /** Test serde_json */
-const SERDE_JSON_1 = { "a" : "b" };
+export const SERDE_JSON_1 = { "a" : "b" };
 
-const SERDE_JSON_2 = { "a" : "b" };
+export const SERDE_JSON_2 = { "a" : "b" };
 
 /**
  * Variants should to discriminated unions

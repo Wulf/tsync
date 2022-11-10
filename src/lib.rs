@@ -1,5 +1,7 @@
+mod consts;
+mod enums;
 mod typescript;
-mod utils;
+pub mod utils;
 
 use crate::typescript::convert_type;
 use std::fs::File;
@@ -30,7 +32,7 @@ macro_rules! check_tsync {
     };
 }
 
-struct BuildState /*<'a>*/ {
+pub struct BuildState /*<'a>*/ {
     pub types: String,
     pub unprocessed_files: Vec<PathBuf>,
     // pub ignore_file_config: Option<gitignore::File<'a>>,
@@ -46,21 +48,22 @@ fn has_tsync_attribute(attributes: &Vec<syn::Attribute>) -> bool {
     utils::has_attribute("tsync", attributes)
 }
 
-fn write_comments(state: &mut BuildState, comments: &Vec<String>, indentation_amount: i8) {
-    let indentation = utils::build_indentation(indentation_amount);
-    match comments.len() {
-        0 => (),
-        1 => state
-            .types
-            .push_str(&format!("{}/** {} */\n", indentation, &comments[0])),
-        _ => {
-            state.types.push_str(&format!("{}/**\n", indentation));
-            for comment in comments {
-                state
-                    .types
-                    .push_str(&format!("{} * {}\n", indentation, &comment))
+impl BuildState {
+    fn write_comments(&mut self, comments: &Vec<String>, indentation_amount: i8) {
+        let indentation = utils::build_indentation(indentation_amount);
+        match comments.len() {
+            0 => (),
+            1 => self
+                .types
+                .push_str(&format!("{}/** {} */\n", indentation, &comments[0])),
+            _ => {
+                self.types.push_str(&format!("{}/**\n", indentation));
+                for comment in comments {
+                    self.types
+                        .push_str(&format!("{} * {}\n", indentation, &comment))
+                }
+                self.types.push_str(&format!("{} */\n", indentation))
             }
-            state.types.push_str(&format!("{} */\n", indentation))
         }
     }
 }
@@ -101,7 +104,7 @@ fn process_rust_file(debug: bool, input_path: PathBuf, state: &mut BuildState) {
         match item {
             syn::Item::Const(exported_const) => {
                 check_tsync!(exported_const, in: "const", {
-                    
+                    consts::process(&exported_const, state, debug);
                 }, debug);
             }
             syn::Item::Struct(exported_struct) => {
@@ -109,7 +112,7 @@ fn process_rust_file(debug: bool, input_path: PathBuf, state: &mut BuildState) {
                     state.types.push('\n');
 
                     let comments = utils::get_comments(exported_struct.clone().attrs);
-                    write_comments(state, &comments, 0);
+                    state.write_comments(&comments, 0);
 
                     state.types.push_str(&format!(
                         "interface {interface_name}{generics} {{\n",
@@ -118,7 +121,7 @@ fn process_rust_file(debug: bool, input_path: PathBuf, state: &mut BuildState) {
                     ));
                     for field in exported_struct.fields {
                         let comments = utils::get_comments(field.attrs);
-                        write_comments(state, &comments, 2);
+                        state.write_comments(&comments, 2);
                         let field_name = field.ident.unwrap().to_string();
                         let field_type = convert_type(&field.ty);
                         state.types.push_str(&format!(
@@ -141,7 +144,7 @@ fn process_rust_file(debug: bool, input_path: PathBuf, state: &mut BuildState) {
                     let name = exported_type.ident.to_string();
                     let ty = convert_type(&exported_type.ty);
                     let comments = utils::get_comments(exported_type.attrs);
-                    write_comments(state, &comments, 0);
+                    state.write_comments(&comments, 0);
                     state.types.push_str(
                         format!("type {name} = {ty}", name = name, ty = ty.ts_type).as_str(),
                     );

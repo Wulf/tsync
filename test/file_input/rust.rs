@@ -56,7 +56,9 @@ const SERDE_JSON_2: serde_json::Value = json!({ "a": "b" });
 #[serde(tag = "last_precedent")]
 #[tsync]
 enum Message {
+    /// Per Enum case Docs One
     UnitCaseLeft,
+    /// Per Enum case Docs Two
     RequestLongTake {
         id: String,
         method: String,

@@ -51,9 +51,11 @@ const SERDE_JSON_2 = { "a" : "b" };
  * The last serde/attribute combo matching the tag should be taken
  */
 type Message =
+  /** Per Enum case Docs One */
   | {
       last_precedent: "unit-case-left",
     }
+  /** Per Enum case Docs Two */
   | {
       last_precedent: "request-long-take",
       id: string

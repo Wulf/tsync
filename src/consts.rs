@@ -4,6 +4,7 @@ use super::utils;
 use crate::BuildState;
 
 // maybe this could become a triat implemented on syn::Item types ?? like ToTypescript
+// were item is &self
 pub fn process(item: &syn::ItemConst, state: &mut BuildState, debug: bool) {
     // this currently only supports literals
     // e.g. const NAME: [type_ignored] = 0

@@ -38,10 +38,45 @@ const CONST_TEST_1 = 0;
 /** Shouldn't compile but should convert */
 const CONST_TEST_2 = 0.0;
 
-/** Valid Rust but not valid typescript would be misleading if it made it into normal string */
+/** Valid Rust but not valid typescript would be misleading if it made it into normal string ? */
 const CONST_TEST_3 = b"Hello";
 
 /** Test serde_json */
 const SERDE_JSON_1 = { "a" : "b" };
 
 const SERDE_JSON_2 = { "a" : "b" };
+
+/**
+ * Variants should to discriminated unions
+ * The last serde/attribute combo matching the tag should be taken
+ */
+type Message =
+  | {
+      last_precedent: "unit-case-left",
+    }
+  | {
+      last_precedent: "request-long-take",
+      id: string
+      method: string
+      params: number
+    }
+  | {
+      last_precedent: "response",
+      id: string
+      result: Date
+    };
+
+/**
+ * Integer enums should follow rust discrimination if literals (doesn't evaluate expression)
+ * The case renaming defaults to SCREAMING_SNAKE_CASE
+ */
+enum Foo {
+  BAR = 0,
+  BAZ = 123,
+  QUUX = 124,
+}
+
+enum Animal {
+  DOG = 0,
+  CAT = 1,
+}

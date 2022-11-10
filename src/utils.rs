@@ -9,6 +9,7 @@ pub fn has_attribute(needle: &str, attributes: &Vec<syn::Attribute>) -> bool {
     })
 }
 
+/// Get the value matching an attribute and argument combination
 pub fn get_attribute_arg(
     needle: &str,
     arg: &str,
@@ -27,26 +28,22 @@ pub fn get_attribute_arg(
             // check if attribute list contains the argument we are interested in
             if let Ok(syn::Meta::List(args)) = attr.parse_meta() {
                 // accept the literal following the argument we want
-                let mut accept = false;
                 for subs in args.nested {
                     match subs {
-                        NestedMeta::Lit(val) => {
-                            if accept {
-                                // ignore the type of literal and just make it a string
-                                return Some(val.to_token_stream().to_string());
-                            }
-                        }
-                        NestedMeta::Meta(meta) => {
+                        NestedMeta::Meta(syn::Meta::NameValue(meta)) => {
                             // check if the meta refers to the argument we want
                             if meta
-                                .path()
+                                .path
                                 .get_ident()
                                 .filter(|x| &x.to_string() == arg)
                                 .is_some()
                             {
-                                accept = true;
+                                if let syn::Lit::Str(out) = meta.lit {
+                                    return Some(out.value());
+                                }
                             }
                         }
+                        _ => (),
                     }
                 }
             }
@@ -93,10 +90,10 @@ pub fn build_indentation(indentation_amount: i8) -> String {
     indent
 }
 
-pub fn extract_struct_generics(s: syn::ItemStruct) -> String {
+pub fn extract_struct_generics(s: syn::Generics) -> String {
     let mut generic_params: Vec<String> = vec![];
 
-    for generic_param in s.generics.params {
+    for generic_param in s.params {
         match generic_param {
             syn::GenericParam::Type(ty) => generic_params.push(ty.ident.to_string()),
             _ => {}

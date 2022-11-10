@@ -1,5 +1,6 @@
 mod consts;
 mod enums;
+pub mod structs;
 mod typescript;
 pub mod utils;
 
@@ -109,32 +110,12 @@ fn process_rust_file(debug: bool, input_path: PathBuf, state: &mut BuildState) {
             }
             syn::Item::Struct(exported_struct) => {
                 check_tsync!(exported_struct, in: "struct", {
-                    state.types.push('\n');
-
-                    let comments = utils::get_comments(exported_struct.clone().attrs);
-                    state.write_comments(&comments, 0);
-
-                    state.types.push_str(&format!(
-                        "interface {interface_name}{generics} {{\n",
-                        interface_name = exported_struct.clone().ident.to_string(),
-                        generics = utils::extract_struct_generics(exported_struct.clone())
-                    ));
-                    for field in exported_struct.fields {
-                        let comments = utils::get_comments(field.attrs);
-                        state.write_comments(&comments, 2);
-                        let field_name = field.ident.unwrap().to_string();
-                        let field_type = convert_type(&field.ty);
-                        state.types.push_str(&format!(
-                            "  {field_name}{optional_parameter_token}: {field_type}\n",
-                            field_name = field_name,
-                            optional_parameter_token =
-                                if field_type.is_optional { "?" } else { "" },
-                            field_type = field_type.ts_type
-                        ));
-                    }
-                    state.types.push_str("}");
-
-                    state.types.push('\n');
+                    structs::process(exported_struct, state, debug);
+                }, debug);
+            }
+            syn::Item::Enum(exported_enum) => {
+                check_tsync!(exported_enum, in: "enum", {
+                    enums::process(exported_enum, state, debug);
                 }, debug);
             }
             syn::Item::Type(exported_type) => {

@@ -53,32 +53,56 @@ export const SERDE_JSON_2 = { "a" : "b" };
 type Message =
   /** Per Enum case Docs One */
   | {
-      last_precedent: "unit-case-left",
+      last_precedent: "UnitCaseLeft",
     }
   /** Per Enum case Docs Two */
   | {
-      last_precedent: "request-long-take",
+      last_precedent: "RequestLongTake",
       id: string
       method: string
       params: number
     }
   | {
-      last_precedent: "response",
+      last_precedent: "Response",
       id: string
       result: Date
     };
 
-/**
- * Integer enums should follow rust discrimination if literals (doesn't evaluate expression)
- * The case renaming defaults to SCREAMING_SNAKE_CASE
- */
-enum Foo {
-  BAR = 0,
-  BAZ = 123,
-  QUUX = 124,
-}
+/** The default enum conversion uses external tagging */
+type ExternalMessage =
+  /** Per Enum case Docs One */
+  | {
+      "UnitCaseLeft": {}
+    }
+  /** Per Enum case Docs Two */
+  | {
+      "RequestLongTake": {
+        id: string
+        method: string
+        params: number
+      }
+    }
+  | {
+      "Response": {
+        id: string
+        result: Date
+      }
+    };
 
-enum Animal {
-  DOG = 0,
-  CAT = 1,
+/**
+ * All Unit Enums go to union of constant strings
+ * even if have explicit numeric annotations
+ * There is no case renaming on default
+ */
+type Animal =
+  | "Dog" | "Cat";
+
+type AnimalTwo =
+  | "dog_long_extra" | "cat";
+
+/** Integer enums should follow rust discrimination if literals (doesn't evaluate expression) */
+enum Foo {
+  Bar = 0,
+  Baz = 123,
+  Quux = 124,
 }

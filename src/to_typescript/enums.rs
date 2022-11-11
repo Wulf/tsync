@@ -1,4 +1,4 @@
-use super::{utils, BuildState};
+use crate::{utils, BuildState};
 use convert_case::{Case, Casing};
 use syn::__private::ToTokens;
 
@@ -17,43 +17,42 @@ static RENAME_RULES: &[(&str, convert_case::Case)] = &[
 /// however conversion will adhere to the `serde` `tag` such that enums are intenrally tagged
 /// (while the other forms such as adjacent tagging aren't supported).
 /// `renameAll` attributes for the name of the tag will also be adhered to.
-pub fn process(exported_struct: syn::ItemEnum, state: &mut BuildState, debug: bool) {
-    // check we don't have any tuple structs that could mess things up.
-    // if we do ignore this struct
-    for variant in exported_struct.variants.iter() {
-        for f in variant.fields.iter() {
-            if f.ident.is_none() {
-                if debug {
-                    println!(
-                        "#[tsync] failed for enum {}",
-                        exported_struct.ident.to_string()
-                    );
+impl super::ToTypescript for syn::ItemEnum {
+    fn convert_to_ts(self, state: &mut BuildState, debug: bool) {
+        // check we don't have any tuple structs that could mess things up.
+        // if we do ignore this struct
+        for variant in self.variants.iter() {
+            for f in variant.fields.iter() {
+                if f.ident.is_none() {
+                    if debug {
+                        println!("#[tsync] failed for enum {}", self.ident.to_string());
+                    }
+                    return;
                 }
-                return;
             }
         }
-    }
 
-    state.types.push('\n');
+        state.types.push('\n');
 
-    let comments = utils::get_comments(exported_struct.clone().attrs);
-    let casing = utils::get_attribute_arg("serde", "renameAll", &exported_struct.attrs);
-    let casing = to_enum_case(casing);
+        let comments = utils::get_comments(self.clone().attrs);
+        let casing = utils::get_attribute_arg("serde", "renameAll", &self.attrs);
+        let casing = to_enum_case(casing);
 
-    let is_single = !exported_struct.variants.iter().any(|x| x.fields.len() > 0);
-    state.write_comments(&comments, 0);
+        let is_single = !self.variants.iter().any(|x| x.fields.len() > 0);
+        state.write_comments(&comments, 0);
 
-    if is_single {
-        if utils::has_attribute_arg("derive", "Serialize_repr", &exported_struct.attrs) {
-            make_numeric_enum(exported_struct, state, casing)
+        if is_single {
+            if utils::has_attribute_arg("derive", "Serialize_repr", &self.attrs) {
+                make_numeric_enum(self, state, casing)
+            } else {
+                make_enum(self, state, casing)
+            }
         } else {
-            make_enum(exported_struct, state, casing)
-        }
-    } else {
-        if let Some(tag_name) = utils::get_attribute_arg("serde", "tag", &exported_struct.attrs) {
-            make_variant(tag_name, exported_struct, state, casing)
-        } else {
-            make_externally_tagged_variant(exported_struct, state, casing)
+            if let Some(tag_name) = utils::get_attribute_arg("serde", "tag", &self.attrs) {
+                make_variant(tag_name, self, state, casing)
+            } else {
+                make_externally_tagged_variant(self, state, casing)
+            }
         }
     }
 }
@@ -194,7 +193,7 @@ fn make_variant(
             tag_name,
             field_name,
         ));
-        crate::structs::process_fields(variant.fields, state, 6);
+        super::structs::process_fields(variant.fields, state, 6);
         state.types.push_str("    }");
     }
     state.types.push_str(";\n");
@@ -233,7 +232,7 @@ fn make_externally_tagged_variant(
         } else {
             prepend = utils::build_indentation(6);
             state.types.push('\n');
-            crate::structs::process_fields(variant.fields, state, 8);
+            super::structs::process_fields(variant.fields, state, 8);
         }
         state
             .types

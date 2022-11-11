@@ -1,10 +1,7 @@
-mod consts;
-mod enums;
-pub mod structs;
+mod to_typescript;
 mod typescript;
 pub mod utils;
 
-use crate::typescript::convert_type;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
@@ -14,8 +11,10 @@ use walkdir::WalkDir;
 /// the #[tsync] attribute macro which marks structs and types to be translated into the final typescript definitions file
 pub use tsync_macro::tsync;
 
-/// macro to check from an syn::Item most of them ident attribs that is the one we one to print
-/// but not sure!
+use crate::to_typescript::ToTypescript;
+
+/// macro to check from an syn::Item most of them have ident attribs
+/// that is the one we want to print but not sure!
 macro_rules! check_tsync {
     ($x: ident, in: $y: tt, $z: tt, $debug: ident) => {
         let has_tsync_attribute = has_tsync_attribute(&$x.attrs);
@@ -69,7 +68,12 @@ impl BuildState {
     }
 }
 
-fn process_rust_file(debug: bool, input_path: PathBuf, state: &mut BuildState) {
+fn process_rust_file(
+    debug: bool,
+    input_path: PathBuf,
+    state: &mut BuildState,
+    uses_typeinterface: bool,
+) {
     if debug {
         println!(
             "processing rust file: {:?}",
@@ -104,33 +108,25 @@ fn process_rust_file(debug: bool, input_path: PathBuf, state: &mut BuildState) {
     for item in syntax.items {
         match item {
             syn::Item::Const(exported_const) => {
-                check_tsync!(exported_const, in: "const", {
-                    consts::process(&exported_const, state, debug);
-                }, debug);
+                if !uses_typeinterface {
+                    check_tsync!(exported_const, in: "const", {
+                        exported_const.convert_to_ts(state, debug);
+                    }, debug);
+                }
             }
             syn::Item::Struct(exported_struct) => {
                 check_tsync!(exported_struct, in: "struct", {
-                    structs::process(exported_struct, state, debug);
+                    exported_struct.convert_to_ts(state, debug);
                 }, debug);
             }
             syn::Item::Enum(exported_enum) => {
                 check_tsync!(exported_enum, in: "enum", {
-                    enums::process(exported_enum, state, debug);
+                    exported_enum.convert_to_ts(state, debug);
                 }, debug);
             }
             syn::Item::Type(exported_type) => {
                 check_tsync!(exported_type, in: "type", {
-                    state.types.push_str("\n");
-
-                    let name = exported_type.ident.to_string();
-                    let ty = convert_type(&exported_type.ty);
-                    let comments = utils::get_comments(exported_type.attrs);
-                    state.write_comments(&comments, 0);
-                    state.types.push_str(
-                        format!("type {name} = {ty}", name = name, ty = ty.ts_type).as_str(),
-                    );
-
-                    state.types.push_str("\n");
+                    exported_type.convert_to_ts(state, debug);
                 }, debug);
             }
             _ => {}
@@ -139,6 +135,8 @@ fn process_rust_file(debug: bool, input_path: PathBuf, state: &mut BuildState) {
 }
 
 pub fn generate_typescript_defs(input: Vec<PathBuf>, output: PathBuf, debug: bool) {
+    let uses_typeinterface = output.ends_with(".d.ts");
+
     let mut state: BuildState = BuildState {
         types: String::new(),
         unprocessed_files: Vec::<PathBuf>::new(),
@@ -183,7 +181,7 @@ pub fn generate_typescript_defs(input: Vec<PathBuf>, output: PathBuf, debug: boo
                             let extension = path.extension();
                             if extension.is_some() && extension.unwrap().eq_ignore_ascii_case("rs")
                             {
-                                process_rust_file(debug, path, &mut state);
+                                process_rust_file(debug, path, &mut state, uses_typeinterface);
                             } else if debug {
                                 println!("Encountered non-rust file `{:#?}`", path);
                             }
@@ -201,7 +199,7 @@ pub fn generate_typescript_defs(input: Vec<PathBuf>, output: PathBuf, debug: boo
                 }
             }
         } else {
-            process_rust_file(debug, input_path, &mut state);
+            process_rust_file(debug, input_path, &mut state, uses_typeinterface);
         }
     }
 

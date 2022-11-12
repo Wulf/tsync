@@ -74,6 +74,7 @@ fn process_rust_file(
     state: &mut BuildState,
     uses_typeinterface: bool,
 ) {
+    dbg!(uses_typeinterface);
     if debug {
         println!(
             "processing rust file: {:?}",
@@ -108,25 +109,23 @@ fn process_rust_file(
     for item in syntax.items {
         match item {
             syn::Item::Const(exported_const) => {
-                if !uses_typeinterface {
-                    check_tsync!(exported_const, in: "const", {
-                        exported_const.convert_to_ts(state, debug);
-                    }, debug);
-                }
+                check_tsync!(exported_const, in: "const", {
+                    exported_const.convert_to_ts(state, debug, uses_typeinterface);
+                }, debug);
             }
             syn::Item::Struct(exported_struct) => {
                 check_tsync!(exported_struct, in: "struct", {
-                    exported_struct.convert_to_ts(state, debug);
+                    exported_struct.convert_to_ts(state, debug, uses_typeinterface);
                 }, debug);
             }
             syn::Item::Enum(exported_enum) => {
                 check_tsync!(exported_enum, in: "enum", {
-                    exported_enum.convert_to_ts(state, debug);
+                    exported_enum.convert_to_ts(state, debug, uses_typeinterface);
                 }, debug);
             }
             syn::Item::Type(exported_type) => {
                 check_tsync!(exported_type, in: "type", {
-                    exported_type.convert_to_ts(state, debug);
+                    exported_type.convert_to_ts(state, debug, uses_typeinterface);
                 }, debug);
             }
             _ => {}
@@ -135,7 +134,11 @@ fn process_rust_file(
 }
 
 pub fn generate_typescript_defs(input: Vec<PathBuf>, output: PathBuf, debug: bool) {
-    let uses_typeinterface = output.ends_with(".d.ts");
+    let uses_typeinterface = output
+        .as_os_str()
+        .to_str()
+        .map(|x| x.ends_with(".d.ts"))
+        .unwrap_or(true);
 
     let mut state: BuildState = BuildState {
         types: String::new(),

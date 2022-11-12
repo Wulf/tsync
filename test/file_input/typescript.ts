@@ -32,6 +32,20 @@ interface PaginationResult<T> {
   total_items: number
 }
 
+/** Test integer */
+export const CONST_TEST_1 = 0;
+
+/** Shouldn't compile but should convert */
+export const CONST_TEST_2 = 0.0;
+
+/** Valid Rust but not valid typescript would be misleading if it made it into normal string ? */
+export const CONST_TEST_3 = b"Hello";
+
+/** Test serde_json */
+export const SERDE_JSON_1 = { "a" : "b" };
+
+export const SERDE_JSON_2 = { "a" : "b" };
+
 /**
  * Variants should to discriminated unions
  * The last serde/attribute combo matching the tag should be taken
@@ -87,7 +101,7 @@ type AnimalTwo =
   | "dog_long_extra" | "cat";
 
 /** Integer enums should follow rust discrimination if literals (doesn't evaluate expression) */
-declare enum Foo {
+enum Foo {
   Bar = 0,
   Baz = 123,
   Quux = 124,

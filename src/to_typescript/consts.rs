@@ -4,7 +4,12 @@ use crate::utils;
 use crate::BuildState;
 
 impl super::ToTypescript for syn::ItemConst {
-    fn convert_to_ts(self, state: &mut BuildState, debug: bool) {
+    fn convert_to_ts(self, state: &mut BuildState, debug: bool, uses_typeinterface: bool) {
+        // ignore if we aren't in a type interface
+        if uses_typeinterface {
+            return;
+        }
+
         // this currently only supports literals
         // e.g. const NAME: [type_ignored] = 0
         // e.g. const NAME: [type_ignored] = "some_string"

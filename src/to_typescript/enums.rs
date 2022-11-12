@@ -18,7 +18,7 @@ static RENAME_RULES: &[(&str, convert_case::Case)] = &[
 /// (while the other forms such as adjacent tagging aren't supported).
 /// `renameAll` attributes for the name of the tag will also be adhered to.
 impl super::ToTypescript for syn::ItemEnum {
-    fn convert_to_ts(self, state: &mut BuildState, debug: bool) {
+    fn convert_to_ts(self, state: &mut BuildState, debug: bool, uses_typeinterface: bool) {
         // check we don't have any tuple structs that could mess things up.
         // if we do ignore this struct
         for variant in self.variants.iter() {
@@ -43,7 +43,7 @@ impl super::ToTypescript for syn::ItemEnum {
 
         if is_single {
             if utils::has_attribute_arg("derive", "Serialize_repr", &self.attrs) {
-                make_numeric_enum(self, state, casing)
+                make_numeric_enum(self, state, casing, uses_typeinterface)
             } else {
                 make_enum(self, state, casing)
             }
@@ -102,9 +102,15 @@ fn make_enum(exported_struct: syn::ItemEnum, state: &mut BuildState, casing: Opt
 /// }
 /// ```
 ///
-fn make_numeric_enum(exported_struct: syn::ItemEnum, state: &mut BuildState, casing: Option<Case>) {
+fn make_numeric_enum(
+    exported_struct: syn::ItemEnum,
+    state: &mut BuildState,
+    casing: Option<Case>,
+    uses_typeinterface: bool,
+) {
+    let declare = if uses_typeinterface { "declare " } else { "" };
     state.types.push_str(&format!(
-        "enum {interface_name} {{",
+        "{declare}enum {interface_name} {{",
         interface_name = exported_struct.ident.to_string()
     ));
 

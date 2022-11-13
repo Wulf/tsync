@@ -1,17 +1,38 @@
+mod to_typescript;
 mod typescript;
+pub mod utils;
 
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
-use syn::{GenericParam, ItemStruct};
 use tsync_macro;
 use walkdir::WalkDir;
-use crate::typescript::convert_type;
 
 /// the #[tsync] attribute macro which marks structs and types to be translated into the final typescript definitions file
 pub use tsync_macro::tsync;
 
-struct BuildState /*<'a>*/ {
+use crate::to_typescript::ToTypescript;
+
+/// macro to check from an syn::Item most of them have ident attribs
+/// that is the one we want to print but not sure!
+macro_rules! check_tsync {
+    ($x: ident, in: $y: tt, $z: tt, $debug: ident) => {
+        let has_tsync_attribute = has_tsync_attribute(&$x.attrs);
+        if $debug {
+            if has_tsync_attribute {
+                println!("Encountered #[tsync] {}: {}", $y, $x.ident.to_string());
+            } else {
+                println!("Encountered non-tsync {}: {}", $y, $x.ident.to_string());
+            }
+        }
+
+        if has_tsync_attribute {
+            $z
+        }
+    };
+}
+
+pub struct BuildState /*<'a>*/ {
     pub types: String,
     pub unprocessed_files: Vec<PathBuf>,
     // pub ignore_file_config: Option<gitignore::File<'a>>,
@@ -24,86 +45,36 @@ struct BuildState /*<'a>*/ {
 // }
 
 fn has_tsync_attribute(attributes: &Vec<syn::Attribute>) -> bool {
-    attributes.iter().any(|attr| {
-        attr.path
-            .segments
-            .iter()
-            .any(|segment| segment.ident.to_string() == "tsync")
-    })
+    utils::has_attribute("tsync", attributes)
 }
 
-fn get_comments(attributes: Vec<syn::Attribute>) -> Vec<String> {
-    let mut comments: Vec<String> = vec![];
-
-    for attribute in attributes {
-        let mut is_doc = false;
-        for segment in attribute.path.segments {
-            if segment.ident.to_string() == "doc" {
-                is_doc = true;
-                break;
-            }
-        }
-
-        if is_doc {
-            for token in attribute.tokens {
-                match token {
-                    syn::__private::quote::__private::TokenTree::Literal(comment) => {
-                        let comment = comment.to_string();
-                        let comment = comment[1..comment.len() - 1].trim();
-                        comments.push(comment.to_string());
-                    }
-                    _ => { /* Do nothing */ }
+impl BuildState {
+    fn write_comments(&mut self, comments: &Vec<String>, indentation_amount: i8) {
+        let indentation = utils::build_indentation(indentation_amount);
+        match comments.len() {
+            0 => (),
+            1 => self
+                .types
+                .push_str(&format!("{}/** {} */\n", indentation, &comments[0])),
+            _ => {
+                self.types.push_str(&format!("{}/**\n", indentation));
+                for comment in comments {
+                    self.types
+                        .push_str(&format!("{} * {}\n", indentation, &comment))
                 }
+                self.types.push_str(&format!("{} */\n", indentation))
             }
         }
     }
-
-    comments
 }
 
-fn build_indentation(indentation_amount: i8) -> String {
-    let mut indent = "".to_string();
-    for _ in 0..indentation_amount {
-        indent.push(' ');
-    }
-    indent
-}
-
-fn write_comments(state: &mut BuildState, comments: &Vec<String>, indentation_amount: i8) {
-    let indentation = build_indentation(indentation_amount);
-    match comments.len() {
-        0 => (),
-        1 => state.types.push_str(&format!("{}/** {} */\n", indentation, &comments[0])),
-        _ => {
-            state.types.push_str(&format!("{}/**\n", indentation));
-            for comment in comments {
-                state.types.push_str(&format!("{} * {}\n", indentation, &comment))
-            }
-            state.types.push_str(&format!("{} */\n", indentation))
-        }
-    }
-}
-
-fn extract_struct_generics(s: ItemStruct) -> String {
-    let mut generic_params: Vec<String> = vec![];
-
-    for generic_param in s.generics.params {
-        match generic_param {
-            GenericParam::Type(ty) => {
-                generic_params.push(ty.ident.to_string())
-            },
-            _ => {}
-        }
-    }
-
-    if generic_params.len() == 0 {
-        "".to_string()
-    } else {
-        format!("<{list}>", list = generic_params.join(", "))
-    }
-}
-
-fn process_rust_file(debug: bool, input_path: PathBuf, state: &mut BuildState) {
+fn process_rust_file(
+    debug: bool,
+    input_path: PathBuf,
+    state: &mut BuildState,
+    uses_typeinterface: bool,
+) {
+    dbg!(uses_typeinterface);
     if debug {
         println!(
             "processing rust file: {:?}",
@@ -137,81 +108,25 @@ fn process_rust_file(debug: bool, input_path: PathBuf, state: &mut BuildState) {
 
     for item in syntax.items {
         match item {
+            syn::Item::Const(exported_const) => {
+                check_tsync!(exported_const, in: "const", {
+                    exported_const.convert_to_ts(state, debug, uses_typeinterface);
+                }, debug);
+            }
             syn::Item::Struct(exported_struct) => {
-                let has_tsync_attribute = has_tsync_attribute(&exported_struct.attrs);
-
-                if debug {
-                    if has_tsync_attribute {
-                        println!(
-                            "Encountered #[tsync] struct: {}",
-                            exported_struct.ident.to_string()
-                        );
-                    } else {
-                        println!(
-                            "Encountered non-tsync struct: {}",
-                            exported_struct.ident.to_string()
-                        );
-                    }
-                }
-
-                if has_tsync_attribute {
-                    state.types.push('\n');
-
-                    let comments = get_comments(exported_struct.clone().attrs);
-                    write_comments(state, &comments, 0);
-
-                    state.types.push_str(&format!(
-                        "interface {interface_name}{generics} {{\n",
-                        interface_name = exported_struct.clone().ident.to_string(),
-                        generics = extract_struct_generics(exported_struct.clone())
-                    ));
-                    for field in exported_struct.fields {
-                        let comments = get_comments(field.attrs);
-                        write_comments(state, &comments, 2);
-                        let field_name = field.ident.unwrap().to_string();
-                        let field_type = convert_type(&field.ty);
-                        state.types.push_str(&format!(
-                            "  {field_name}{optional_parameter_token}: {field_type}\n",
-                            field_name = field_name,
-                            optional_parameter_token = if field_type.is_optional { "?" } else { "" },
-                            field_type = field_type.ts_type
-                        ));
-                    }
-                    state.types.push_str("}");
-
-                    state.types.push('\n');
-                }
+                check_tsync!(exported_struct, in: "struct", {
+                    exported_struct.convert_to_ts(state, debug, uses_typeinterface);
+                }, debug);
+            }
+            syn::Item::Enum(exported_enum) => {
+                check_tsync!(exported_enum, in: "enum", {
+                    exported_enum.convert_to_ts(state, debug, uses_typeinterface);
+                }, debug);
             }
             syn::Item::Type(exported_type) => {
-                let has_tsync_attribute = has_tsync_attribute(&exported_type.attrs);
-
-                if debug {
-                    if has_tsync_attribute {
-                        println!(
-                            "Encountered #[tsync] type: {}",
-                            exported_type.ident.to_string()
-                        );
-                    } else {
-                        println!(
-                            "Encountered non-tsync type: {}",
-                            exported_type.ident.to_string()
-                        );
-                    }
-                }
-
-                if has_tsync_attribute {
-                    state.types.push_str("\n");
-
-                    let name = exported_type.ident.to_string();
-                    let ty = convert_type(&exported_type.ty);
-                    let comments = get_comments(exported_type.attrs);
-                    write_comments(state, &comments, 0);
-                    state
-                        .types
-                        .push_str(format!("type {name} = {ty}", name = name, ty = ty.ts_type).as_str());
-
-                    state.types.push_str("\n");
-                }
+                check_tsync!(exported_type, in: "type", {
+                    exported_type.convert_to_ts(state, debug, uses_typeinterface);
+                }, debug);
             }
             _ => {}
         }
@@ -219,6 +134,12 @@ fn process_rust_file(debug: bool, input_path: PathBuf, state: &mut BuildState) {
 }
 
 pub fn generate_typescript_defs(input: Vec<PathBuf>, output: PathBuf, debug: bool) {
+    let uses_typeinterface = output
+        .as_os_str()
+        .to_str()
+        .map(|x| x.ends_with(".d.ts"))
+        .unwrap_or(true);
+
     let mut state: BuildState = BuildState {
         types: String::new(),
         unprocessed_files: Vec::<PathBuf>::new(),
@@ -263,7 +184,7 @@ pub fn generate_typescript_defs(input: Vec<PathBuf>, output: PathBuf, debug: boo
                             let extension = path.extension();
                             if extension.is_some() && extension.unwrap().eq_ignore_ascii_case("rs")
                             {
-                                process_rust_file(debug, path, &mut state);
+                                process_rust_file(debug, path, &mut state, uses_typeinterface);
                             } else if debug {
                                 println!("Encountered non-rust file `{:#?}`", path);
                             }
@@ -281,7 +202,7 @@ pub fn generate_typescript_defs(input: Vec<PathBuf>, output: PathBuf, debug: boo
                 }
             }
         } else {
-            process_rust_file(debug, input_path, &mut state);
+            process_rust_file(debug, input_path, &mut state, uses_typeinterface);
         }
     }
 
@@ -316,9 +237,7 @@ pub fn generate_typescript_defs(input: Vec<PathBuf>, output: PathBuf, debug: boo
 
         let mut file: File = File::create(&output).expect("Unable to write to file");
         match file.write_all(state.types.as_bytes()) {
-            Ok(_) => println!(
-                "Successfully generated typescript types, see {:#?}", output
-            ),
+            Ok(_) => println!("Successfully generated typescript types, see {:#?}", output),
             Err(_) => println!("Failed to generate types, an error occurred."),
         }
     }

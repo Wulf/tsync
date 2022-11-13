@@ -7,4 +7,4 @@ cd $SCRIPT_DIR
 ./file_input/tsync.sh
 ./directory_input/tsync.sh
 ./const/tsync.sh
-./enum/tsyc.sh
+./enum/tsync.sh

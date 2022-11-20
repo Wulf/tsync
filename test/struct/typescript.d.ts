@@ -23,9 +23,6 @@ interface Chapter {
   pages: number
 }
 
-/** Time in UTC seconds */
-type UTC = number
-
 /** Generic struct test */
 interface PaginationResult<T> {
   items: Array<T>

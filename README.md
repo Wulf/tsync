@@ -8,7 +8,7 @@ A utility to generate typescript types from rust code.
 
 There are two parts to this:
 
-1. The CLI tool:
+1. The CLI tool (or see "Usage as a library"):
 
    ```
    cargo install tsync
@@ -17,9 +17,7 @@ There are two parts to this:
 2. The dependency for rust projects (to use the `#[tsync]` attribute; see usage below)
 
    ```
-   /// Cargo.toml
-
-   tsync = "X.Y.Z"
+   cargo add tsync@1
    ```
 
 # Usage
@@ -67,7 +65,7 @@ And voilà!
 interface Book {
   name: string
   chapters: Array<Chapter>
-  user_reviews: Array<string> | undefined
+  user_reviews?: Array<string>
 }
 
 interface Chapter {
@@ -78,6 +76,16 @@ interface Chapter {
 // Time in UTC seconds
 type UTC = number
 ```
+
+**Supported Conversions & Examples**
+
+| Rust code with `#[tsync]`          | Typescript output                                                                                                                                            |
+|------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`struct`](./test/struct/rust.rs)  | [.d.ts file](./test/struct/typescript.d.ts) or .ts file                                                                                                      |
+| [`type`](./test/type/rust.rs)      | [.d.ts file](./test/type/typescript.d.ts) or .ts file                                                                                                        |
+| [`enum`](./test/enum/rust.rs)      | [.d.ts file](./test/enum/typescript.d.ts) or [.ts file](./test/enum/typescript.ts)                                                                           |
+| [`const`](./test/const/rust.rs) or `json!` | [.ts file](./test/const/typescript.ts)<br>**Note: if you specify a `.d.ts` extension for your output, rust `const`s with `#[tsync]` are ignored**            |
+
 
 ## Multiple Inputs
 

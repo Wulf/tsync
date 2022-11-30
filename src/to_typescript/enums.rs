@@ -45,13 +45,13 @@ impl super::ToTypescript for syn::ItemEnum {
             if utils::has_attribute_arg("derive", "Serialize_repr", &self.attrs) {
                 make_numeric_enum(self, state, casing, uses_typeinterface)
             } else {
-                make_enum(self, state, casing)
+                make_enum(self, state, casing, uses_typeinterface)
             }
         } else {
             if let Some(tag_name) = utils::get_attribute_arg("serde", "tag", &self.attrs) {
-                make_variant(tag_name, self, state, casing)
+                make_variant(tag_name, self, state, casing, uses_typeinterface)
             } else {
-                make_externally_tagged_variant(self, state, casing)
+                make_externally_tagged_variant(self, state, casing, uses_typeinterface)
             }
         }
     }
@@ -59,9 +59,15 @@ impl super::ToTypescript for syn::ItemEnum {
 
 /// This convert an all unit enums to a union of const strings in Typescript.
 /// It will ignore any discriminants.  
-fn make_enum(exported_struct: syn::ItemEnum, state: &mut BuildState, casing: Option<Case>) {
+fn make_enum(
+    exported_struct: syn::ItemEnum,
+    state: &mut BuildState,
+    casing: Option<Case>,
+    uses_typeinterface: bool,
+) {
+    let export = if uses_typeinterface { "" } else { "export " };
     state.types.push_str(&format!(
-        "type {interface_name} =\n{space}",
+        "{export}type {interface_name} =\n{space}",
         interface_name = exported_struct.ident.to_string(),
         space = utils::build_indentation(1)
     ));
@@ -108,7 +114,11 @@ fn make_numeric_enum(
     casing: Option<Case>,
     uses_typeinterface: bool,
 ) {
-    let declare = if uses_typeinterface { "declare " } else { "" };
+    let declare = if uses_typeinterface {
+        "declare "
+    } else {
+        "export "
+    };
     state.types.push_str(&format!(
         "{declare}enum {interface_name} {{",
         interface_name = exported_struct.ident.to_string()
@@ -176,9 +186,11 @@ fn make_variant(
     exported_struct: syn::ItemEnum,
     state: &mut BuildState,
     casing: Option<Case>,
+    uses_typeinterface: bool,
 ) {
+    let export = if uses_typeinterface { "" } else { "export " };
     state.types.push_str(&format!(
-        "type {interface_name}{generics} =",
+        "{export}type {interface_name}{generics} =",
         interface_name = exported_struct.ident.to_string(),
         generics = utils::extract_struct_generics(exported_struct.generics.clone())
     ));
@@ -210,9 +222,11 @@ fn make_externally_tagged_variant(
     exported_struct: syn::ItemEnum,
     state: &mut BuildState,
     casing: Option<Case>,
+    uses_typeinterface: bool,
 ) {
+    let export = if uses_typeinterface { "" } else { "export " };
     state.types.push_str(&format!(
-        "type {interface_name}{generics} =",
+        "{export}type {interface_name}{generics} =",
         interface_name = exported_struct.ident.to_string(),
         generics = utils::extract_struct_generics(exported_struct.generics.clone())
     ));

@@ -4,9 +4,5 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 cd $SCRIPT_DIR
 
-./directory_input/tsync.sh
-
-./struct/tsync.sh
-./type/tsync.sh
-./const/tsync.sh
-./enum/tsync.sh
+cargo run -- -i rust.rs -o typescript.d.ts
+cargo run -- -i rust.rs -o typescript.ts

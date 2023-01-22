@@ -79,12 +79,12 @@ type UTC = number
 
 **Supported Conversions & Examples**
 
-| Rust code with `#[tsync]`          | Typescript output                                                                                                                                            |
-|------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`struct`](./test/struct/rust.rs)  | [.d.ts file](./test/struct/typescript.d.ts) or .ts file                                                                                                      |
-| [`type`](./test/type/rust.rs)      | [.d.ts file](./test/type/typescript.d.ts) or .ts file                                                                                                        |
-| [`enum`](./test/enum/rust.rs)      | [.d.ts file](./test/enum/typescript.d.ts) or [.ts file](./test/enum/typescript.ts)                                                                           |
-| [`const`](./test/const/rust.rs) or `json!` | [.ts file](./test/const/typescript.ts)<br>**Note: if you specify a `.d.ts` extension for your output, rust `const`s with `#[tsync]` are ignored**            |
+| Rust code with `#[tsync]`                                                                               | Typescript output                                                                                                                                            |
+|---------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`struct`](./test/struct/rust.rs)                                                                       | [.d.ts file](./test/struct/typescript.d.ts) or .ts file                                                                                                      |
+| [`type`](./test/type/rust.rs)                                                                           | [.d.ts file](./test/type/typescript.d.ts) or .ts file                                                                                                        |
+| [`enum`](./test/enum/rust.rs)                                                                           | [.d.ts file](./test/enum/typescript.d.ts) or [.ts file](./test/enum/typescript.ts)                                                                           |
+| [`const`](./test/const/rust.rs) (or [limited](https://github.com/Wulf/tsync/issues/10) `json!` support) | [.ts file](./test/const/typescript.ts)<br>**Note: if you specify a `.d.ts` extension for your output, rust `const`s with `#[tsync]` are ignored**            |
 
 
 ## Multiple Inputs

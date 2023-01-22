@@ -4,7 +4,7 @@
  * Variants should to discriminated unions
  * The last serde/attribute combo matching the tag should be taken
  */
-type Message =
+export type Message =
   /** Per Enum case Docs One */
   | {
       last_precedent: "UnitCaseLeft",
@@ -23,7 +23,7 @@ type Message =
     };
 
 /** The default enum conversion uses external tagging */
-type ExternalMessage =
+export type ExternalMessage =
   /** Per Enum case Docs One */
   | {
       "UnitCaseLeft": {}
@@ -48,14 +48,14 @@ type ExternalMessage =
  * even if have explicit numeric annotations
  * There is no case renaming on default
  */
-type Animal =
+export type Animal =
   | "Dog" | "Cat";
 
-type AnimalTwo =
+export type AnimalTwo =
   | "dog_long_extra" | "cat";
 
 /** Integer enums should follow rust discrimination if literals (doesn't evaluate expression) */
-enum Foo {
+export enum Foo {
   Bar = 0,
   Baz = 123,
   Quux = 124,

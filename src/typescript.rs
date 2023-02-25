@@ -75,6 +75,19 @@ pub fn convert_type(ty: &syn::Type) -> TsType {
                     ),
                     _ => "unknown".to_string(),
                 }.into(),
+                "HashMap" => match arguments {
+                    syn::PathArguments::Parenthesized(parenthesized_argument) => {
+                        format!("{:?}", parenthesized_argument)
+                    }
+                    syn::PathArguments::AngleBracketed(anglebracketed_argument) => format!(
+                        "Record<{}>",
+                        anglebracketed_argument.args.iter().map(|arg| match convert_generic(arg) {
+                            TsType{ is_optional: true, ts_type } => format!("{} | undefined", ts_type),
+                            TsType{ is_optional: false, ts_type } => ts_type
+                        }).collect::<Vec<String>>().join(", ")
+                    ),
+                    _ => "unknown".to_string(),
+                }.into(),
                 _ => identifier.to_string().into(),
             }
         }

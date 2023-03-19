@@ -44,7 +44,7 @@ pub struct BuildState /*<'a>*/ {
 //     ignore_file.is_excluded(&path).unwrap_or(false)
 // }
 
-fn has_tsync_attribute(attributes: &Vec<syn::Attribute>) -> bool {
+fn has_tsync_attribute(attributes: &[syn::Attribute]) -> bool {
     utils::has_attribute("tsync", attributes)
 }
 

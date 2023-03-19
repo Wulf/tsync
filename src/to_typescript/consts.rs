@@ -40,20 +40,17 @@ impl super::ToTypescript for syn::ItemConst {
         };
         match body {
             Some(body) => {
-                state.types.push_str("\n");
-                let comments = utils::get_comments(self.attrs.to_owned());
+                state.types.push('\n');
+                let comments = utils::get_comments(self.attrs);
                 state.write_comments(&comments, 0);
                 state
                     .types
                     .push_str(&format!("export const {} = {};", name, body));
-                state.types.push_str("\n");
+                state.types.push('\n');
             }
             _ => {
                 if debug {
-                    println!(
-                        "#[tsync] failed for const {}",
-                        self.to_token_stream().to_string()
-                    );
+                    println!("#[tsync] failed for const {}", self.to_token_stream());
                 }
             }
         }

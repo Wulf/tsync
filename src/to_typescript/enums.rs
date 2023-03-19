@@ -25,7 +25,7 @@ impl super::ToTypescript for syn::ItemEnum {
             for f in variant.fields.iter() {
                 if f.ident.is_none() {
                     if debug {
-                        println!("#[tsync] failed for enum {}", self.ident.to_string());
+                        println!("#[tsync] failed for enum {}", self.ident);
                     }
                     return;
                 }
@@ -38,7 +38,7 @@ impl super::ToTypescript for syn::ItemEnum {
         let casing = utils::get_attribute_arg("serde", "renameAll", &self.attrs);
         let casing = to_enum_case(casing);
 
-        let is_single = !self.variants.iter().any(|x| x.fields.len() > 0);
+        let is_single = !self.variants.iter().any(|x| !x.fields.is_empty());
         state.write_comments(&comments, 0);
 
         if is_single {
@@ -47,12 +47,10 @@ impl super::ToTypescript for syn::ItemEnum {
             } else {
                 make_enum(self, state, casing, uses_typeinterface)
             }
+        } else if let Some(tag_name) = utils::get_attribute_arg("serde", "tag", &self.attrs) {
+            make_variant(tag_name, self, state, casing, uses_typeinterface)
         } else {
-            if let Some(tag_name) = utils::get_attribute_arg("serde", "tag", &self.attrs) {
-                make_variant(tag_name, self, state, casing, uses_typeinterface)
-            } else {
-                make_externally_tagged_variant(self, state, casing, uses_typeinterface)
-            }
+            make_externally_tagged_variant(self, state, casing, uses_typeinterface)
         }
     }
 }
@@ -68,7 +66,7 @@ fn make_enum(
     let export = if uses_typeinterface { "" } else { "export " };
     state.types.push_str(&format!(
         "{export}type {interface_name} =\n{space}",
-        interface_name = exported_struct.ident.to_string(),
+        interface_name = exported_struct.ident,
         space = utils::build_indentation(1)
     ));
 
@@ -121,7 +119,7 @@ fn make_numeric_enum(
     };
     state.types.push_str(&format!(
         "{declare}enum {interface_name} {{",
-        interface_name = exported_struct.ident.to_string()
+        interface_name = exported_struct.ident
     ));
 
     let mut num = 0;
@@ -191,7 +189,7 @@ fn make_variant(
     let export = if uses_typeinterface { "" } else { "export " };
     state.types.push_str(&format!(
         "{export}type {interface_name}{generics} =",
-        interface_name = exported_struct.ident.to_string(),
+        interface_name = exported_struct.ident,
         generics = utils::extract_struct_generics(exported_struct.generics.clone())
     ));
 
@@ -227,7 +225,7 @@ fn make_externally_tagged_variant(
     let export = if uses_typeinterface { "" } else { "export " };
     state.types.push_str(&format!(
         "{export}type {interface_name}{generics} =",
-        interface_name = exported_struct.ident.to_string(),
+        interface_name = exported_struct.ident,
         generics = utils::extract_struct_generics(exported_struct.generics.clone())
     ));
 
@@ -247,7 +245,7 @@ fn make_externally_tagged_variant(
             field_name,
         ));
         let prepend;
-        if variant.fields.len() == 0 {
+        if variant.fields.is_empty() {
             prepend = "".into();
         } else {
             prepend = utils::build_indentation(6);

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use structopt::StructOpt;
 
-const DESCRIPTION: &'static str = env!("CARGO_PKG_DESCRIPTION");
+const DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
 
 #[derive(Debug, StructOpt, Clone)]
 #[structopt(about = DESCRIPTION, after_help = "This command helps generate type information for other languages. Currently, only typescript is supported.")]
@@ -21,22 +21,21 @@ struct Args {
     //     help = "Optionally ignore files with a .gitignore (or similar file); for example: --use-ignore-file=.gitignore"
     // )]
     // use_ignore_file: Option<PathBuf>,
-
     /// Input file
     #[structopt(
-    short = "i",
-    long = "input",
-    help = "Required; rust file(s) to read type information from",
-    required = true
+        short = "i",
+        long = "input",
+        help = "Required; rust file(s) to read type information from",
+        required = true
     )]
     input: Vec<PathBuf>,
 
     /// Output file (this is the "<name>.d.ts" that gets generated)
     #[structopt(
-    parse(from_os_str),
-    short = "o",
-    long = "output",
-    help = "Required; file to write generated types to"
+        parse(from_os_str),
+        short = "o",
+        long = "output",
+        help = "Required; file to write generated types to"
     )]
     output: PathBuf,
 }

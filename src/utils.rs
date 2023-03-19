@@ -5,7 +5,7 @@ pub fn has_attribute(needle: &str, attributes: &Vec<syn::Attribute>) -> bool {
         attr.path
             .segments
             .iter()
-            .any(|segment| segment.ident.to_string() == needle)
+            .any(|segment| segment.ident == needle)
     })
 }
 
@@ -71,7 +71,7 @@ pub fn get_comments(attributes: Vec<syn::Attribute>) -> Vec<String> {
     for attribute in attributes {
         let mut is_doc = false;
         for segment in attribute.path.segments {
-            if segment.ident.to_string() == "doc" {
+            if segment.ident == "doc" {
                 is_doc = true;
                 break;
             }
@@ -112,7 +112,7 @@ pub fn extract_struct_generics(s: syn::Generics) -> String {
         }
     }
 
-    if generic_params.len() == 0 {
+    if generic_params.is_empty() {
         "".to_string()
     } else {
         format!("<{list}>", list = generic_params.join(", "))
@@ -129,7 +129,7 @@ pub fn get_attribute(needle: &str, attributes: &Vec<syn::Attribute>) -> Option<A
             .path
             .segments
             .iter()
-            .any(|segment| segment.ident.to_string() == needle)
+            .any(|segment| segment.ident == needle)
         {
             return Some(attr.clone());
         }

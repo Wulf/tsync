@@ -22,7 +22,7 @@ fn convert_generic(gen_ty: &syn::GenericArgument) -> TsType {
 
 pub fn convert_type(ty: &syn::Type) -> TsType {
     match ty {
-        syn::Type::Reference(p) => convert_type(&*p.elem),
+        syn::Type::Reference(p) => convert_type(&p.elem),
         syn::Type::Path(p) => {
             let segment = p.path.segments.last().unwrap();
             let ident = &segment.ident;
@@ -56,8 +56,7 @@ pub fn convert_type(ty: &syn::Type) -> TsType {
                             format!("{:?}", parenthesized_argument)
                         }
                         syn::PathArguments::AngleBracketed(anglebracketed_argument) => {
-                            convert_generic(anglebracketed_argument.args.first().unwrap())
-                                .ts_type
+                            convert_generic(anglebracketed_argument.args.first().unwrap()).ts_type
                         }
                         _ => "unknown".to_string(),
                     },
@@ -69,25 +68,44 @@ pub fn convert_type(ty: &syn::Type) -> TsType {
                     syn::PathArguments::AngleBracketed(anglebracketed_argument) => format!(
                         "Array<{}>",
                         match convert_generic(anglebracketed_argument.args.first().unwrap()) {
-                            TsType{ is_optional: true, ts_type } => format!("{} | undefined", ts_type),
-                            TsType{ is_optional: false, ts_type } => ts_type
+                            TsType {
+                                is_optional: true,
+                                ts_type,
+                            } => format!("{} | undefined", ts_type),
+                            TsType {
+                                is_optional: false,
+                                ts_type,
+                            } => ts_type,
                         }
                     ),
                     _ => "unknown".to_string(),
-                }.into(),
+                }
+                .into(),
                 "HashMap" => match arguments {
                     syn::PathArguments::Parenthesized(parenthesized_argument) => {
                         format!("{:?}", parenthesized_argument)
                     }
                     syn::PathArguments::AngleBracketed(anglebracketed_argument) => format!(
                         "Record<{}>",
-                        anglebracketed_argument.args.iter().map(|arg| match convert_generic(arg) {
-                            TsType{ is_optional: true, ts_type } => format!("{} | undefined", ts_type),
-                            TsType{ is_optional: false, ts_type } => ts_type
-                        }).collect::<Vec<String>>().join(", ")
+                        anglebracketed_argument
+                            .args
+                            .iter()
+                            .map(|arg| match convert_generic(arg) {
+                                TsType {
+                                    is_optional: true,
+                                    ts_type,
+                                } => format!("{} | undefined", ts_type),
+                                TsType {
+                                    is_optional: false,
+                                    ts_type,
+                                } => ts_type,
+                            })
+                            .collect::<Vec<String>>()
+                            .join(", ")
                     ),
                     _ => "unknown".to_string(),
-                }.into(),
+                }
+                .into(),
                 _ => identifier.to_string().into(),
             }
         }

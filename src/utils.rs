@@ -73,7 +73,7 @@ pub fn get_comments(attributes: Vec<syn::Attribute>) -> Vec<String> {
 
         if is_doc {
             for token in attribute.tokens {
-                if let syn::__private::quote::__private::TokenTree::Literal(comment) = token {
+                if let proc_macro2::TokenTree::Literal(comment) = token {
                     let comment = comment.to_string();
                     let comment = comment[1..comment.len() - 1].trim();
                     comments.push(comment.to_string());

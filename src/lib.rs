@@ -5,7 +5,7 @@ pub mod utils;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
-use tsync_macro;
+
 use walkdir::WalkDir;
 
 /// the #[tsync] attribute macro which marks structs and types to be translated into the final typescript definitions file
@@ -44,7 +44,7 @@ pub struct BuildState /*<'a>*/ {
 //     ignore_file.is_excluded(&path).unwrap_or(false)
 // }
 
-fn has_tsync_attribute(attributes: &Vec<syn::Attribute>) -> bool {
+fn has_tsync_attribute(attributes: &[syn::Attribute]) -> bool {
     utils::has_attribute("tsync", attributes)
 }
 
@@ -243,7 +243,7 @@ pub fn generate_typescript_defs(input: Vec<PathBuf>, output: PathBuf, debug: boo
         }
     }
 
-    if state.unprocessed_files.len() > 0 {
+    if !state.unprocessed_files.is_empty() {
         println!("Could not parse the following files:");
     }
 

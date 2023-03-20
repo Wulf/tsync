@@ -12,11 +12,11 @@ impl super::ToTypescript for syn::ItemStruct {
 
         state.types.push_str(&format!(
             "{export}interface {interface_name}{generics} {{\n",
-            interface_name = self.clone().ident.to_string(),
+            interface_name = self.ident,
             generics = utils::extract_struct_generics(self.generics.clone())
         ));
         process_fields(self.fields, state, 2);
-        state.types.push_str("}");
+        state.types.push('}');
 
         state.types.push('\n');
     }

@@ -185,7 +185,7 @@ dependencies = [
 
 [[package]]
 name = "tsync"
-version = "1.6.3"
+version = "1.7.0"
 dependencies = [
  "convert_case",
  "proc-macro2",

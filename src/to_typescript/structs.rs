@@ -30,7 +30,7 @@ pub fn process_fields(fields: syn::Fields, state: &mut BuildState, indentation_a
         let field_name = field.ident.unwrap().to_string();
         let field_type = convert_type(&field.ty);
         state.types.push_str(&format!(
-            "{space}{field_name}{optional_parameter_token}: {field_type}\n",
+            "{space}{field_name}{optional_parameter_token}: {field_type};\n",
             space = space,
             field_name = field_name,
             optional_parameter_token = if field_type.is_optional { "?" } else { "" },

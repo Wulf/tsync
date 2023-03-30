@@ -5,22 +5,26 @@
  * The last serde/attribute combo matching the tag should be taken
  */
 type Message =
-  /** Per Enum case Docs One */
-  | {
-      last_precedent: "UnitCaseLeft",
-    }
-  /** Per Enum case Docs Two */
-  | {
-      last_precedent: "RequestLongTake",
-      id: string
-      method: string
-      params: number
-    }
-  | {
-      last_precedent: "Response",
-      id: string
-      result: Date
-    };
+  | Message__UnitCaseLeft
+  | Message__RequestLongTake
+  | Message__Response;
+
+/** Per Enum case Docs One */
+type Message__UnitCaseLeft = {
+  last_precedent: "UnitCaseLeft";
+};
+/** Per Enum case Docs Two */
+type Message__RequestLongTake = {
+  last_precedent: "RequestLongTake";
+  id: string;
+  method: string;
+  params: number;
+};
+type Message__Response = {
+  last_precedent: "Response";
+  id: string;
+  result: Date;
+};
 
 /** The default enum conversion uses external tagging */
 type ExternalMessage =
@@ -31,15 +35,15 @@ type ExternalMessage =
   /** Per Enum case Docs Two */
   | {
       "RequestLongTake": {
-        id: string
-        method: string
-        params: number
+        id: string;
+        method: string;
+        params: number;
       }
     }
   | {
       "Response": {
-        id: string
-        result: Date
+        id: string;
+        result: Date;
       }
     };
 

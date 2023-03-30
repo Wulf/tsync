@@ -193,10 +193,27 @@ fn make_variant(
         generics = utils::extract_struct_generics(exported_struct.generics.clone())
     ));
 
+    for variant in exported_struct.variants.iter() {
+        state.types.push('\n');
+        state.types.push_str(&format!(
+            "  | {interface_name}__{variant_name}",
+            interface_name = exported_struct.ident,
+            variant_name = variant.ident,
+        ))
+    }
+
+    state.types.push_str(";\n");
+
     for variant in exported_struct.variants {
         state.types.push('\n');
         let comments = utils::get_comments(variant.attrs);
-        state.write_comments(&comments, 2);
+        state.write_comments(&comments, 0);
+        state.types.push_str(&format!(
+            "type {interface_name}__{variant_name} = ",
+            interface_name = exported_struct.ident,
+            variant_name = variant.ident,
+        ));
+
         let field_name = if let Some(casing) = casing {
             variant.ident.to_string().to_case(casing)
         } else {
@@ -204,15 +221,15 @@ fn make_variant(
         };
         // add discriminant
         state.types.push_str(&format!(
-            "  | {{\n{}{}: \"{}\",\n",
-            utils::build_indentation(6),
+            "{{\n{}{}: \"{}\";\n",
+            utils::build_indentation(2),
             tag_name,
             field_name,
         ));
-        super::structs::process_fields(variant.fields, state, 6);
-        state.types.push_str("    }");
+        super::structs::process_fields(variant.fields, state, 2);
+        state.types.push_str("};");
     }
-    state.types.push_str(";\n");
+    state.types.push_str("\n");
 }
 
 /// This follows serde's default approach of external tagging

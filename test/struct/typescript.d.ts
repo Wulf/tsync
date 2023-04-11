@@ -3,14 +3,14 @@
 /** Doc comments are preserved too! */
 interface Book {
   /** Name of the book. */
-  name: string
+  name: string;
   /** Chapters of the book. */
-  chapters: Array<Chapter>
+  chapters: Array<Chapter>;
   /**
    * Reviews of the book
    * by users.
    */
-  user_reviews?: Array<string>
+  user_reviews?: Array<string>;
 }
 
 /**
@@ -19,12 +19,12 @@ interface Book {
  * separate lines
  */
 interface Chapter {
-  title: string
-  pages: number
+  title: string;
+  pages: number;
 }
 
 /** Generic struct test */
 interface PaginationResult<T> {
-  items: Array<T>
-  total_items: number
+  items: Array<T>;
+  total_items: number;
 }

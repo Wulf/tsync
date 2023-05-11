@@ -1,10 +1,7 @@
 /// test/rust.rs
 use tsync::tsync;
 
-/// Variants should to discriminated unions
-/// The last serde/attribute combo matching the tag should be taken
 #[derive(Serialize, Deserialize)]
-#[serde(tag = "somethingelse")]
 #[serde(renameAll = "kebab-case")]
 #[serde(tag = "last_precedent")]
 #[tsync]
@@ -17,10 +14,7 @@ enum Message {
         method: String,
         params: i32,
     },
-    Response {
-        id: String,
-        result: NaiveDateTime,
-    },
+    Response(Response),
 }
 
 /// The default enum conversion uses external tagging
@@ -34,10 +28,14 @@ enum ExternalMessage {
         method: String,
         params: i32,
     },
-    Response {
-        id: String,
-        result: NaiveDateTime,
-    },
+    /// Newtype variant with exactly one variable
+    Response(Response),
+}
+
+#[tsync]
+struct Response {
+    id: String,
+    result: NaiveDateTime,
 }
 
 /// All Unit Enums go to union of constant strings

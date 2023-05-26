@@ -13,7 +13,7 @@ edition = "2018"
 [dependencies]
 structopt = "0.3.22"
 syn = { version = "1.0.75", features = ["full", "extra-traits"] }
-proc-macro2 = "1.0.52"
+proc-macro2 = "1.0.59"
 quote = "1.0.23"
 walkdir = "2.3.2"
 tsync-macro = "0.1.0"

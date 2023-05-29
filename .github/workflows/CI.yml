@@ -24,15 +24,15 @@ concurrency:
 
 jobs:
   development-lint:
-    name: Clippy with profile.dev
+    name: Clippy with debug-assertions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3.3.0
+      - uses: actions/checkout@v3.5.2
       - uses: rui314/setup-mold@v1
       - run: rustup install stable
       - run: rustup update
       - run: rustup component add clippy
-      - uses: actions/cache@v3.2.6
+      - uses: actions/cache@v3.3.1
         with:
           path: |
             ./.cargo/.build
@@ -46,15 +46,15 @@ jobs:
           args: -- -D warnings -C debug-assertions=y
   
   production-lint:
-    name: Clippy with profile.release
+    name: Clippy without debug-assertions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3.3.0
+      - uses: actions/checkout@v3.5.2
       - uses: rui314/setup-mold@v1
       - run: rustup install stable
       - run: rustup update
       - run: rustup component add clippy
-      - uses: actions/cache@v3.2.6
+      - uses: actions/cache@v3.3.1
         with:
           path: |
             ./.cargo/.build
@@ -65,19 +65,41 @@ jobs:
         uses: actions-rs/cargo@v1.0.3
         with:
           command: clippy
-          args: --release -- -D warnings -C debug-assertions=y
-  
-  # TODO: add a job to run tests using the test_all script
+          args: -- -D warnings -C debug-assertions=n
 
-  test:
-    name: Test Suite and Initialize profile.test Cache
+  test-script:
+    name: run test-scripts
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3.3.0
       - uses: rui314/setup-mold@v1
+      - uses: actions-rs/toolchain@v1.0.7
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - uses: actions/cache@v3.2.4
+        with:
+          path: |
+            ./.cargo/.build
+            ./target
+            ~/.cargo
+          key: ${{ runner.os }}-cargo-dev-${{ hashFiles('**/Cargo.lock') }}
+      - name: run test scripts
+        run: |
+          bash test/test_all.sh
+          git diff --exit-code --quiet || exit 1
+      
+  # things that use the cargo-test cache
+  test:
+    name: Test Suite and Initialize profile.test Cache
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3.5.2
+      - uses: rui314/setup-mold@v1
       - run: rustup install stable
       - run: rustup update
-      - uses: actions/cache@v3.2.5
+      - uses: actions/cache@v3.3.1
         with:
           path: |
             ./.cargo/.build
@@ -93,7 +115,7 @@ jobs:
     name: Rustfmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3.3.0
+      - uses: actions/checkout@v3.5.2
       - run: rustup install stable
       - run: rustup update
       - run: rustup component add rustfmt

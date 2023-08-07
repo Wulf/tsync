@@ -44,7 +44,7 @@ impl super::ToTypescript for syn::ItemEnum {
         state.types.push('\n');
 
         let comments = utils::get_comments(self.clone().attrs);
-        let casing = utils::get_attribute_arg("serde", "renameAll", &self.attrs);
+        let casing = utils::get_attribute_arg("serde", "rename_all", &self.attrs);
         let casing = to_enum_case(casing);
 
         let is_single = !self.variants.iter().any(|x| !x.fields.is_empty());

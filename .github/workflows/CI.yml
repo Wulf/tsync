@@ -2,14 +2,14 @@ name: Rust Continuous Integration
 on:
   workflow_dispatch:
   push:
-    branches: 
+    branches:
       - "main"
-    paths: 
+    paths:
       - "**.rs"
       - "Cargo.lock"
       - "Cargo.toml"
   pull_request:
-    paths: 
+    paths:
       - "**.rs"
       - "Cargo.lock"
       - "Cargo.toml"
@@ -17,87 +17,30 @@ env:
   CARGO_TERM_COLOR: always
   CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
   CARGO_INCREMENTAL: true
-  
+
 concurrency:
-  group:  CI-${{ github.ref }}
+  group: CI-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  development-lint:
-    name: Clippy with profile.dev
+  test:
+    name: test
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3.3.0
       - uses: rui314/setup-mold@v1
-      - run: rustup install stable
-      - run: rustup update
-      - run: rustup component add clippy
-      - uses: actions/cache@v3.2.6
+      - uses: actions-rs/toolchain@v1.0.7
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - uses: actions/cache@v3.2.4
         with:
           path: |
             ./.cargo/.build
             ./target
             ~/.cargo
           key: ${{ runner.os }}-cargo-dev-${{ hashFiles('**/Cargo.lock') }}
-      - name: Clippy
-        uses: actions-rs/cargo@v1.0.3
-        with:
-          command: clippy
-          args: -- -D warnings -C debug-assertions=y
-  
-  production-lint:
-    name: Clippy with profile.release
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3.3.0
-      - uses: rui314/setup-mold@v1
-      - run: rustup install stable
-      - run: rustup update
-      - run: rustup component add clippy
-      - uses: actions/cache@v3.2.6
-        with:
-          path: |
-            ./.cargo/.build
-            ./target
-            ~/.cargo
-          key: ${{ runner.os }}-cargo-prod-${{ hashFiles('**/Cargo.lock') }}
-      - name: Clippy
-        uses: actions-rs/cargo@v1.0.3
-        with:
-          command: clippy
-          args: --release -- -D warnings -C debug-assertions=y
-  
-  # TODO: add a job to run tests using the test_all script
-
-  test:
-    name: Test Suite and Initialize profile.test Cache
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3.3.0
-      - uses: rui314/setup-mold@v1
-      - run: rustup install stable
-      - run: rustup update
-      - uses: actions/cache@v3.2.5
-        with:
-          path: |
-            ./.cargo/.build
-            ./target
-            ~/.cargo
-          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
-      - uses: actions-rs/cargo@v1.0.3
-        with:
-          command: test
-  
-  # Things that don't need a cache
-  fmt:
-    name: Rustfmt
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3.3.0
-      - run: rustup install stable
-      - run: rustup update
-      - run: rustup component add rustfmt
-      - uses: actions-rs/cargo@v1.0.3
-        with:
-          command: fmt
-          args: --all -- --check
+      - run: bash test/test_all.sh
+      - run: git diff --exit-code --quiet || exit 1

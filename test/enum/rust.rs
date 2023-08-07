@@ -47,7 +47,7 @@ enum Animal {
     Cat,
 }
 #[tsync]
-#[serde(renameAll = "snake_case")]
+#[serde(rename_all = "snake_case")]
 enum AnimalTwo {
     DogLongExtra = 2,
     Cat,

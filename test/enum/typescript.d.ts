@@ -1,41 +1,54 @@
 /* This file is generated and managed by tsync */
 
-type Message =
-  | Message__UnitCaseLeft
-  | Message__RequestLongTake;
+/**
+ * Internally tagged enums have a key-value pair
+ * that discrimate which variant it belongs to
+ */
+type InternalTopping =
+  | InternalTopping__Pepperoni
+  | InternalTopping__ExtraCheese;
 
-/** Per Enum case Docs One */
-type Message__UnitCaseLeft = {
-  last_precedent: "UnitCaseLeft";
+/**
+ * Tasty!
+ * Not vegetarian
+ */
+type InternalTopping__Pepperoni = {
+  type: "Pepperoni";
 };
-/** Per Enum case Docs Two */
-type Message__RequestLongTake = {
-  last_precedent: "RequestLongTake";
-  id: string;
-  method: string;
-  params: number;
+/** For cheese lovers */
+type InternalTopping__ExtraCheese = {
+  type: "ExtraCheese";
+  kind: string;
 };
 
-/** The default enum conversion uses external tagging */
-type ExternalMessage =
-  /** Per Enum case Docs One */
+/**
+ * Externally tagged enums ascribe the value to a key
+ * that is the same as the variant name
+ */
+type ExternalTopping =
+  /**
+   * Tasty!
+   * Not vegetarian
+   */
   | {
-      "UnitCaseLeft": {}
+      "Pepperoni": {}
     }
-  /** Per Enum case Docs Two */
+  /** For cheese lovers */
   | {
-      "RequestLongTake": {
-        id: string;
-        method: string;
-        params: number;
+      "ExtraCheese": {
+        kind: string;
       }
     }
-  /** Newtype variant with exactly one variable */
-  | { "Response": Response };
+  /**
+   * Custom toppings
+   * May expire soon
+   * Note: this test case is specifically for specifying a single type in the tuple
+   */
+  | { "Custom": CustomTopping };
 
-interface Response {
-  id: string;
-  result: Date;
+interface CustomTopping {
+  name: string;
+  expires_in: Date;
 }
 
 /**

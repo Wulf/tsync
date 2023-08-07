@@ -1,13 +1,8 @@
 /* This file is generated and managed by tsync */
 
-/**
- * Variants should to discriminated unions
- * The last serde/attribute combo matching the tag should be taken
- */
 type Message =
   | Message__UnitCaseLeft
-  | Message__RequestLongTake
-  | Message__Response;
+  | Message__RequestLongTake;
 
 /** Per Enum case Docs One */
 type Message__UnitCaseLeft = {
@@ -19,11 +14,6 @@ type Message__RequestLongTake = {
   id: string;
   method: string;
   params: number;
-};
-type Message__Response = {
-  last_precedent: "Response";
-  id: string;
-  result: Date;
 };
 
 /** The default enum conversion uses external tagging */
@@ -40,12 +30,13 @@ type ExternalMessage =
         params: number;
       }
     }
-  | {
-      "Response": {
-        id: string;
-        result: Date;
-      }
-    };
+  /** Newtype variant with exactly one variable */
+  | { "Response": Response };
+
+interface Response {
+  id: string;
+  result: Date;
+}
 
 /**
  * All Unit Enums go to union of constant strings

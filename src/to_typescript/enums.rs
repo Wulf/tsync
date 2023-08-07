@@ -1,6 +1,7 @@
 use crate::{utils, BuildState};
 use convert_case::{Case, Casing};
 use syn::__private::ToTokens;
+use crate::typescript::convert_type;
 
 static RENAME_RULES: &[(&str, convert_case::Case)] = &[
     ("lowercase", Case::Lower),
@@ -22,12 +23,20 @@ impl super::ToTypescript for syn::ItemEnum {
         // check we don't have any tuple structs that could mess things up.
         // if we do ignore this struct
         for variant in self.variants.iter() {
+            // allow single-field tuple structs to pass through as newtype structs
+            let mut is_newtype = false;
             for f in variant.fields.iter() {
                 if f.ident.is_none() {
-                    if debug {
-                        println!("#[tsync] failed for enum {}", self.ident);
+                    // If we already marked this variant as a newtype, we have a multi-field tuple struct
+                    if is_newtype {
+                        if debug {
+                            println!("#[tsync] failed for enum {}", self.ident);
+                        }
+                        return;
                     }
-                    return;
+                    else {
+                        is_newtype = true;
+                    }
                 }
             }
         }
@@ -194,40 +203,59 @@ fn make_variant(
     ));
 
     for variant in exported_struct.variants.iter() {
-        state.types.push('\n');
-        state.types.push_str(&format!(
-            "  | {interface_name}__{variant_name}",
-            interface_name = exported_struct.ident,
-            variant_name = variant.ident,
-        ))
+
+        // Assumes that non-newtype tuple variants have already been filtered out
+        let is_newtype = variant.fields.iter().fold(false, |state, v| {
+            state || v.ident.is_none()
+        });
+        if is_newtype {
+            // TODO: Generate newtype structure
+            // This should contain the discriminant plus all fields of the inner structure as a flat structure
+            // TODO: Check for case where discriminant name matches an inner structure field name
+            // We should reject clashes
+        }
+        else {
+            state.types.push('\n');
+            state.types.push_str(&format!(
+                "  | {interface_name}__{variant_name}",
+                interface_name = exported_struct.ident,
+                variant_name = variant.ident,
+            ))
+        }
     }
 
     state.types.push_str(";\n");
 
     for variant in exported_struct.variants {
-        state.types.push('\n');
-        let comments = utils::get_comments(variant.attrs);
-        state.write_comments(&comments, 0);
-        state.types.push_str(&format!(
-            "type {interface_name}__{variant_name} = ",
-            interface_name = exported_struct.ident,
-            variant_name = variant.ident,
-        ));
+        // Assumes that non-newtype tuple variants have already been filtered out
+        let is_newtype = variant.fields.iter().fold(false, |state, v| {
+            state || v.ident.is_none()
+        });
+        if !is_newtype {
+            state.types.push('\n');
+            let comments = utils::get_comments(variant.attrs);
+            state.write_comments(&comments, 0);
+            state.types.push_str(&format!(
+                "type {interface_name}__{variant_name} = ",
+                interface_name = exported_struct.ident,
+                variant_name = variant.ident,
+            ));
 
-        let field_name = if let Some(casing) = casing {
-            variant.ident.to_string().to_case(casing)
-        } else {
-            variant.ident.to_string()
-        };
-        // add discriminant
-        state.types.push_str(&format!(
-            "{{\n{}{}: \"{}\";\n",
-            utils::build_indentation(2),
-            tag_name,
-            field_name,
-        ));
-        super::structs::process_fields(variant.fields, state, 2);
-        state.types.push_str("};");
+            let field_name = if let Some(casing) = casing {
+                variant.ident.to_string().to_case(casing)
+            } else {
+                variant.ident.to_string()
+            };
+            // add discriminant
+            state.types.push_str(&format!(
+                "{{\n{}{}: \"{}\";\n",
+                utils::build_indentation(2),
+                tag_name,
+                field_name,
+            ));
+            super::structs::process_fields(variant.fields, state, 2);
+            state.types.push_str("};");
+        }
     }
     state.types.push_str("\n");
 }
@@ -255,23 +283,46 @@ fn make_externally_tagged_variant(
         } else {
             variant.ident.to_string()
         };
-        // add discriminant
-        state.types.push_str(&format!(
-            "  | {{\n{}\"{}\": {{",
-            utils::build_indentation(6),
-            field_name,
-        ));
-        let prepend;
-        if variant.fields.is_empty() {
-            prepend = "".into();
-        } else {
-            prepend = utils::build_indentation(6);
-            state.types.push('\n');
-            super::structs::process_fields(variant.fields, state, 8);
+        // Assumes that non-newtype tuple variants have already been filtered out
+        let is_newtype = variant.fields.iter().fold(false, |state, v| {
+            state || v.ident.is_none()
+        });
+
+        if is_newtype {
+            // add discriminant
+            state.types.push_str(&format!(
+                "  | {{ \"{}\":",
+                field_name
+            ));
+            for field in variant.fields {
+                state.types.push_str(&format!(
+                    " {}",
+                    convert_type(&field.ty).ts_type,
+                ));
+            }
+            state
+                .types
+                .push_str(&format!(" }}"));
         }
-        state
-            .types
-            .push_str(&format!("{}}}\n{}}}", prepend, utils::build_indentation(4)));
+        else {
+            // add discriminant
+            state.types.push_str(&format!(
+                "  | {{\n{}\"{}\": {{",
+                utils::build_indentation(6),
+                field_name,
+            ));
+            let prepend;
+            if variant.fields.is_empty() {
+                prepend = "".into();
+            } else {
+                prepend = utils::build_indentation(6);
+                state.types.push('\n');
+                super::structs::process_fields(variant.fields, state, 8);
+            }
+            state
+                .types
+                .push_str(&format!("{}}}\n{}}}", prepend, utils::build_indentation(4)));
+        }
     }
     state.types.push_str(";\n");
 }

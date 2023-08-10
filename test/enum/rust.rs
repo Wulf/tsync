@@ -7,6 +7,7 @@ use tsync::tsync;
 #[serde(tag = "typetypetype")]
 #[serde(renameAll = "kebab-case")]
 #[serde(tag = "type")]
+#[serde(rename_all = "UPPERCASE", tag = "type")]
 #[tsync]
 enum InternalTopping {
     /// Tasty!

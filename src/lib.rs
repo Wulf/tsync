@@ -75,8 +75,6 @@ fn process_rust_file(
     uses_typeinterface: bool,
 ) {
     if debug {
-        dbg!(uses_typeinterface);
-
         println!(
             "processing rust file: {:?}",
             input_path.clone().into_os_string().into_string().unwrap()

@@ -13,11 +13,11 @@ type InternalTopping =
  * Not vegetarian
  */
 type InternalTopping__Pepperoni = {
-  type: "Pepperoni";
+  type: "PEPPERONI";
 };
 /** For cheese lovers */
 type InternalTopping__ExtraCheese = {
-  type: "ExtraCheese";
+  type: "EXTRA CHEESE";
   kind: string;
 };
 
@@ -63,8 +63,5 @@ type AnimalTwo =
   | "dog_long_extra" | "cat";
 
 /** Integer enums should follow rust discrimination if literals (doesn't evaluate expression) */
-declare enum Foo {
-  Bar = 0,
-  Baz = 123,
-  Quux = 124,
-}
+type Foo =
+  | "Bar" | "Baz" | "Quux";

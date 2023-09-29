@@ -1,5 +1,5 @@
 use quote::ToTokens;
-use syn::{punctuated::Punctuated, Attribute, MetaNameValue, Token};
+use syn::{punctuated::Punctuated, Attribute, ExprPath, MetaNameValue, Token};
 
 pub fn has_attribute(needle: &str, attributes: &[syn::Attribute]) -> bool {
     attributes.iter().any(|attr| {
@@ -11,6 +11,9 @@ pub fn has_attribute(needle: &str, attributes: &[syn::Attribute]) -> bool {
 }
 
 /// Get the value matching an attribute and argument combination
+///
+/// For #[serde(tag = "type")], get_attribute_arg("serde", "tag", attributes) will return Some("type")
+/// For #[derive(Serialize_repr)], get_attribute_arg("derive", "Serialize_repr", attributes) will return Some("Serialize_repr")
 pub fn get_attribute_arg(needle: &str, arg: &str, attributes: &[syn::Attribute]) -> Option<String> {
     if let Some(attr) = get_attribute(needle, attributes) {
         // check if attribute list contains the argument we are interested in
@@ -40,6 +43,37 @@ pub fn get_attribute_arg(needle: &str, arg: &str, attributes: &[syn::Attribute])
                 );
 
                 if name_value_pairs.is_err() {
+                    let comma_seperated_values = ::syn::parse::Parser::parse2(
+                        Punctuated::<syn::Expr, Token![,]>::parse_terminated,
+                        group.stream(),
+                    );
+
+                    if comma_seperated_values.is_err() {
+                        continue;
+                    }
+
+                    let comma_seperated_values = comma_seperated_values.unwrap();
+
+                    for comma_seperated_value in comma_seperated_values {
+                        match comma_seperated_value {
+                            syn::Expr::Path(expr_path) => {
+                                let segments = expr_path.path.segments;
+
+                                if segments.is_empty() {
+                                    continue;
+                                }
+
+                                if segments[0].ident.to_string().eq(arg) {
+                                    found = true;
+                                    value = String::from(arg);
+
+                                    break;
+                                }
+                            }
+                            _ => continue,
+                        }
+                    }
+
                     continue;
                 }
 

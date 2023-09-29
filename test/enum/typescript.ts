@@ -61,7 +61,3 @@ export type Animal =
 
 export type AnimalTwo =
   | "dog_long_extra" | "cat";
-
-/** Integer enums should follow rust discrimination if literals (doesn't evaluate expression) */
-export type Foo =
-  | "Bar" | "Baz" | "Quux";

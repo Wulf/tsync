@@ -18,6 +18,10 @@ quote = "1.0.32"
 walkdir = "2.3.3"
 tsync-macro = "0.1.0"
 convert_case = "0.6.0"
+state = "0.6.0"
+
+[dev-dependencies]
+serde = { vesion = "1", features = ["derive"]}
 
 [lib]
 name = "tsync"

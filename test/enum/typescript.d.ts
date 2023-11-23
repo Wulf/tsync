@@ -18,7 +18,7 @@ type InternalTopping__Pepperoni = {
 /** For cheese lovers */
 type InternalTopping__ExtraCheese = {
   type: "EXTRA CHEESE";
-  kind: string;
+  KIND: string;
 };
 
 /**
@@ -49,6 +49,11 @@ type ExternalTopping =
 interface CustomTopping {
   name: string;
   expires_in: Date;
+}
+
+interface CustomToppingCamel {
+  name: string;
+  expiresIn: Date;
 }
 
 /**

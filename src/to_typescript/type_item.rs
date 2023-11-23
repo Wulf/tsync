@@ -1,7 +1,7 @@
 use crate::BuildState;
 
 impl super::ToTypescript for syn::ItemType {
-    fn convert_to_ts(self, state: &mut BuildState, _debug: bool, uses_typeinterface: bool) {
+    fn convert_to_ts(self, state: &mut BuildState, uses_typeinterface: bool) {
         let export = if uses_typeinterface { "" } else { "export " };
         state.types.push('\n');
         let name = self.ident.to_string();

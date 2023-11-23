@@ -4,7 +4,7 @@ use crate::utils;
 use crate::BuildState;
 
 impl super::ToTypescript for syn::ItemConst {
-    fn convert_to_ts(self, state: &mut BuildState, debug: bool, uses_typeinterface: bool) {
+    fn convert_to_ts(self, state: &mut BuildState, uses_typeinterface: bool) {
         // ignore if we aren't in a type interface
         if uses_typeinterface {
             return;
@@ -49,7 +49,7 @@ impl super::ToTypescript for syn::ItemConst {
                 state.types.push('\n');
             }
             _ => {
-                if debug {
+                if crate::DEBUG.try_get().is_some_and(|d| *d) {
                     println!("#[tsync] failed for const {}", self.to_token_stream());
                 }
             }

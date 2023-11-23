@@ -2,10 +2,11 @@ mod to_typescript;
 mod typescript;
 pub mod utils;
 
+use std::ffi::OsStr;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
-
+use state::InitCell;
 use walkdir::WalkDir;
 
 /// the #[tsync] attribute macro which marks structs and types to be translated into the final typescript definitions file
@@ -13,12 +14,14 @@ pub use tsync_macro::tsync;
 
 use crate::to_typescript::ToTypescript;
 
+pub(crate) static  DEBUG: InitCell<bool> = InitCell::new();
+
 /// macro to check from an syn::Item most of them have ident attribs
 /// that is the one we want to print but not sure!
 macro_rules! check_tsync {
-    ($x: ident, in: $y: tt, $z: tt, $debug: ident) => {
+    ($x: ident, in: $y: tt, $z: tt) => {
         let has_tsync_attribute = has_tsync_attribute(&$x.attrs);
-        if $debug {
+        if *DEBUG.get() {
             if has_tsync_attribute {
                 println!("Encountered #[tsync] {}: {}", $y, $x.ident.to_string());
             } else {
@@ -68,73 +71,112 @@ impl BuildState {
     }
 }
 
-fn process_rust_file(
-    debug: bool,
-    input_path: PathBuf,
-    state: &mut BuildState,
-    uses_typeinterface: bool,
-) {
-    if debug {
-        println!(
-            "processing rust file: {:?}",
-            input_path.clone().into_os_string().into_string().unwrap()
-        );
-    }
-
-    let file = File::open(&input_path);
-
-    if file.is_err() {
-        state.unprocessed_files.push(input_path);
-        return;
-    }
-
-    let mut file = file.unwrap();
-
-    let mut src = String::new();
-    if file.read_to_string(&mut src).is_err() {
-        state.unprocessed_files.push(input_path);
-        return;
-    }
-
-    let syntax = syn::parse_file(&src);
-
-    if syntax.is_err() {
-        state.unprocessed_files.push(input_path);
-        return;
-    }
-
-    let syntax = syntax.unwrap();
-
-    for item in syntax.items {
-        match item {
-            syn::Item::Const(exported_const) => {
-                check_tsync!(exported_const, in: "const", {
-                    exported_const.convert_to_ts(state, debug, uses_typeinterface);
-                }, debug);
-            }
-            syn::Item::Struct(exported_struct) => {
-                check_tsync!(exported_struct, in: "struct", {
-                    exported_struct.convert_to_ts(state, debug, uses_typeinterface);
-                }, debug);
-            }
-            syn::Item::Enum(exported_enum) => {
-                check_tsync!(exported_enum, in: "enum", {
-                    exported_enum.convert_to_ts(state, debug, uses_typeinterface);
-                }, debug);
-            }
-            syn::Item::Type(exported_type) => {
-                check_tsync!(exported_type, in: "type", {
-                    exported_type.convert_to_ts(state, debug, uses_typeinterface);
-                }, debug);
-            }
-            _ => {}
+fn process_rust_item(item: syn::Item, state: &mut BuildState, uses_type_interface: bool) {
+    match item {
+        syn::Item::Const(exported_const) => {
+            check_tsync!(exported_const, in: "const", {
+                    exported_const.convert_to_ts(state, uses_type_interface);
+                });
         }
+        syn::Item::Struct(exported_struct) => {
+            check_tsync!(exported_struct, in: "struct", {
+                    exported_struct.convert_to_ts(state, uses_type_interface);
+                });
+        }
+        syn::Item::Enum(exported_enum) => {
+            check_tsync!(exported_enum, in: "enum", {
+                    exported_enum.convert_to_ts(state, uses_type_interface);
+                });
+        }
+        syn::Item::Type(exported_type) => {
+            check_tsync!(exported_type, in: "type", {
+                    exported_type.convert_to_ts(state, uses_type_interface);
+                });
+        }
+        _ => {}
     }
 }
 
+fn process_rust_file<P: AsRef<Path>>(
+    input_path: P,
+    state: &mut BuildState,
+    uses_type_interface: bool,
+) {
+    if *DEBUG.get() {
+        println!("processing rust file: {:?}", input_path.as_ref().to_str());
+    }
+
+    let Ok(src) = std::fs::read_to_string(input_path.as_ref()) else {
+        state.unprocessed_files.push(input_path.as_ref().to_path_buf());
+        return;
+    };
+
+    let Ok(syntax) = syn::parse_file(&src) else {
+        state.unprocessed_files.push(input_path.as_ref().to_path_buf());
+        return;
+    };
+
+    syntax.items
+        .into_iter()
+        .for_each(|item| process_rust_item(item, state, uses_type_interface))
+}
+
+fn debug_check_path<P: AsRef<Path>>(path: P, state: &mut BuildState) -> bool {
+    if !path.as_ref().exists() {
+        if *DEBUG.get() { println!("Path `{:#?}` does not exist", path.as_ref()); }
+        state.unprocessed_files.push(path.as_ref().to_path_buf());
+        false
+    } else {
+        true
+    }
+}
+
+fn check_extension<P: AsRef<Path>>(ext: &OsStr, path: P) -> bool {
+    if ext.eq_ignore_ascii_case("rs") {
+        true
+    } else {
+        if *DEBUG.get() {
+            println!("Encountered non-rust file `{:#?}`", path.as_ref());
+        }
+        false
+    }
+}
+
+fn process_dir_entry<P: AsRef<Path>>(path: P, state: &mut BuildState, uses_type_interface: bool) {
+    WalkDir::new(path.as_ref())
+        .sort_by_file_name()
+        .into_iter()
+        .filter_map(|res| {
+            res.map_or_else(|_| {
+                println!("An error occurred whilst walking directory `{:#?}`...", path.as_ref());
+                None
+            }, |entry| {
+                // skip dir files because they're going to be recursively crawled by WalkDir
+                if entry.path().is_file() {
+                    Some(entry)
+                } else {
+                    if *DEBUG.get() {
+                        println!("Encountered directory `{:#?}`", path.as_ref());
+                    }
+                    None
+                }
+            })
+        })
+        .for_each(|entry| {
+            // make sure it is a rust file
+            if entry.path()
+                .extension()
+                .is_some_and(|extension| check_extension(extension, path.as_ref())) {
+                process_rust_file(path.as_ref(), state, uses_type_interface)
+            }
+
+        })
+}
+
 pub fn generate_typescript_defs(input: Vec<PathBuf>, output: PathBuf, debug: bool) {
-    let uses_typeinterface = output
-        .as_os_str()
+    DEBUG.set(debug);
+
+    let uses_type_interface = output
         .to_str()
         .map(|x| x.ends_with(".d.ts"))
         .unwrap_or(true);
@@ -161,49 +203,16 @@ pub fn generate_typescript_defs(input: Vec<PathBuf>, output: PathBuf, debug: boo
         .types
         .push_str("/* This file is generated and managed by tsync */\n");
 
-    for input_path in input {
-        if !input_path.exists() {
-            if debug {
-                println!("Path `{:#?}` does not exist", input_path);
-            }
-
-            state.unprocessed_files.push(input_path);
-            continue;
-        }
-
-        if input_path.is_dir() {
-            for entry in WalkDir::new(input_path.clone()).sort_by_file_name() {
-                match entry {
-                    Ok(dir_entry) => {
-                        let path = dir_entry.into_path();
-
-                        // skip dir files because they're going to be recursively crawled by WalkDir
-                        if !path.is_dir() {
-                            // make sure it is a rust file
-                            let extension = path.extension();
-                            if extension.is_some() && extension.unwrap().eq_ignore_ascii_case("rs")
-                            {
-                                process_rust_file(debug, path, &mut state, uses_typeinterface);
-                            } else if debug {
-                                println!("Encountered non-rust file `{:#?}`", path);
-                            }
-                        } else if debug {
-                            println!("Encountered directory `{:#?}`", path);
-                        }
-                    }
-                    Err(_) => {
-                        println!(
-                            "An error occurred whilst walking directory `{:#?}`...",
-                            input_path.clone()
-                        );
-                        continue;
-                    }
+    input.into_iter()
+        .for_each(|path| {
+            if debug_check_path(&path, &mut state) {
+                if path.is_dir() {
+                    process_dir_entry(&path, &mut state, uses_type_interface)
+                } else {
+                    process_rust_file(&path, &mut state, uses_type_interface);
                 }
             }
-        } else {
-            process_rust_file(debug, input_path, &mut state, uses_typeinterface);
-        }
-    }
+        });
 
     if debug {
         println!("======================================");
@@ -215,12 +224,11 @@ pub fn generate_typescript_defs(input: Vec<PathBuf>, output: PathBuf, debug: boo
         println!("======================================");
     } else {
         // Verify that the output file either doesn't exists or has been generated by tsync.
-        let original_file_path = Path::new(&output);
-        if original_file_path.exists() {
-            if !original_file_path.is_file() {
+        if output.exists() {
+            if !output.is_file() {
                 panic!("Specified output path is a directory but must be a file.")
             }
-            let original_file = File::open(original_file_path).expect("Couldn't open output file");
+            let original_file = File::open(&output).expect("Couldn't open output file");
             let mut buffer = BufReader::new(original_file);
 
             let mut first_line = String::new();
@@ -234,8 +242,7 @@ pub fn generate_typescript_defs(input: Vec<PathBuf>, output: PathBuf, debug: boo
             }
         }
 
-        let mut file: File = File::create(&output).expect("Unable to write to file");
-        match file.write_all(state.types.as_bytes()) {
+        match std::fs::write(&output, state.types.as_bytes()) {
             Ok(_) => println!("Successfully generated typescript types, see {:#?}", output),
             Err(_) => println!("Failed to generate types, an error occurred."),
         }

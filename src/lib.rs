@@ -121,7 +121,7 @@ fn process_rust_file<P: AsRef<Path>>(
         .for_each(|item| process_rust_item(item, state, uses_type_interface))
 }
 
-fn debug_check_path<P: AsRef<Path>>(path: P, state: &mut BuildState) -> bool {
+fn check_path<P: AsRef<Path>>(path: P, state: &mut BuildState) -> bool {
     if !path.as_ref().exists() {
         if *DEBUG.get() { println!("Path `{:#?}` does not exist", path.as_ref()); }
         state.unprocessed_files.push(path.as_ref().to_path_buf());
@@ -167,7 +167,7 @@ fn process_dir_entry<P: AsRef<Path>>(path: P, state: &mut BuildState, uses_type_
             if entry.path()
                 .extension()
                 .is_some_and(|extension| check_extension(extension, path.as_ref())) {
-                process_rust_file(path.as_ref(), state, uses_type_interface)
+                process_rust_file(entry.path(), state, uses_type_interface)
             }
 
         })
@@ -205,7 +205,7 @@ pub fn generate_typescript_defs(input: Vec<PathBuf>, output: PathBuf, debug: boo
 
     input.into_iter()
         .for_each(|path| {
-            if debug_check_path(&path, &mut state) {
+            if check_path(&path, &mut state) {
                 if path.is_dir() {
                     process_dir_entry(&path, &mut state, uses_type_interface)
                 } else {

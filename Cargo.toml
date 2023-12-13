@@ -21,7 +21,7 @@ convert_case = "0.6.0"
 state = "0.6.0"
 
 [dev-dependencies]
-serde = { vesion = "1", features = ["derive"]}
+serde = { version = "1", features = ["derive"]}
 
 [lib]
 name = "tsync"

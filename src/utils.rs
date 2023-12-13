@@ -52,11 +52,7 @@ fn check_token(token: proc_macro2::TokenTree, arg: &str) -> Option<String> {
     // this detects the '(...)' part in #[serde(rename_all = "UPPERCASE", tag = "type")]
     // we can use this to get the value of a particular argument
     // or to see if it exists at all
-    let proc_macro2::TokenTree::Group(group) = token
-    else
-    {
-        return None;
-    };
+    let proc_macro2::TokenTree::Group(group) = token else { return None; };
 
     // Make sure the delimiter is what we're expecting, otherwise return right away.
     if group.delimiter() != proc_macro2::Delimiter::Parenthesis {
@@ -120,7 +116,6 @@ pub fn has_attribute_arg(needle: &str, arg: &str, attributes: &[syn::Attribute])
     get_attribute_arg(needle, arg, attributes).is_some()
 }
 
-
 /// Checks if a [`proc_macro2::TokenTree`] is a literal character ('a'), string ("hello"),
 /// number (2.3), etc. If so, trim it to retain only the comment body, returning `Some(comment)`,
 /// otherwise returns `None`.
@@ -157,7 +152,12 @@ fn check_doc_attribute(attr: &syn::Attribute) -> Vec<String> {
 pub fn get_comments(mut attributes: Vec<syn::Attribute>) -> Vec<String> {
     // Retains only attributes that have segments equal to "doc".
     // (.e.g. #[doc = "Single line doc comments"])
-    attributes.retain(|x| x.path().segments.iter().any(|seg| seg.ident == "doc"));
+    attributes.retain(|x| {
+        x.path()
+            .segments
+            .iter()
+            .any(|seg| seg.ident == "doc")
+    });
 
     attributes
         .iter()
@@ -207,7 +207,8 @@ pub fn get_attribute<'a>(
 ) -> Option<&'a syn::Attribute> {
     // if multiple attributes pass the conditions
     // we still want to return the last
-    attributes.iter()
+    attributes
+        .iter()
         // Reverse the iterator to check the last attribute first.
         .rev()
         // From the `find` documentation:

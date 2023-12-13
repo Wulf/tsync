@@ -3,8 +3,8 @@ use crate::{utils, BuildState};
 use convert_case::{Case, Casing};
 
 impl super::ToTypescript for syn::ItemStruct {
-    fn convert_to_ts(self, state: &mut BuildState, uses_typeinterface: bool) {
-        let export = if uses_typeinterface { "" } else { "export " };
+    fn convert_to_ts(self, state: &mut BuildState, uses_type_interface: bool) {
+        let export = if uses_type_interface { "" } else { "export " };
         let casing = utils::get_attribute_arg("serde", "rename_all", &self.attrs);
         let casing = utils::parse_serde_case(casing);
         state.types.push('\n');

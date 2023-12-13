@@ -1,12 +1,11 @@
 use syn::__private::ToTokens;
 
-use crate::utils;
-use crate::BuildState;
+use crate::{utils, BuildState};
 
 impl super::ToTypescript for syn::ItemConst {
-    fn convert_to_ts(self, state: &mut BuildState, uses_typeinterface: bool) {
+    fn convert_to_ts(self, state: &mut BuildState, uses_type_interface: bool) {
         // ignore if we aren't in a type interface
-        if uses_typeinterface {
+        if uses_type_interface {
             return;
         }
 

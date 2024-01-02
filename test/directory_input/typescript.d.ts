@@ -13,6 +13,19 @@ interface Book {
   user_reviews?: Array<string>;
 }
 
+/** Book struct with camelCase field names. */
+interface BookCamel {
+  /** Name of the book. */
+  name: string;
+  /** Chapters of the book. */
+  chapters: Array<Chapter>;
+  /**
+   * Reviews of the book
+   * by users.
+   */
+  userReviews?: Array<string>;
+}
+
 /**
  * Multiple line comments
  * are formatted on

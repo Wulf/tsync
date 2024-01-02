@@ -13,6 +13,19 @@ export interface Book {
   user_reviews?: Array<string>;
 }
 
+/** Book struct with camelCase field names. */
+export interface BookCamel {
+  /** Name of the book. */
+  name: string;
+  /** Chapters of the book. */
+  chapters: Array<Chapter>;
+  /**
+   * Reviews of the book
+   * by users.
+   */
+  userReviews?: Array<string>;
+}
+
 /**
  * Multiple line comments
  * are formatted on
@@ -27,4 +40,10 @@ export interface Chapter {
 export interface PaginationResult<T> {
   items: Array<T>;
   total_items: number;
+}
+
+/** Generic struct test with camelCase field names. */
+export interface PaginationResultCamel<T> {
+  items: Array<T>;
+  totalItems: number;
 }

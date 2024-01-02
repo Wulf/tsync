@@ -41,6 +41,14 @@ struct CustomTopping {
     expires_in: NaiveDateTime,
 }
 
+#[tsync]
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CustomToppingCamel {
+    name: String,
+    expires_in: NaiveDateTime,
+}
+
 /// All Unit Enums go to union of constant strings
 /// even if have explicit numeric annotations
 /// There is no case renaming on default

@@ -3,23 +3,12 @@ use crate::{utils, BuildState};
 use convert_case::{Case, Casing};
 use syn::__private::ToTokens;
 
-static RENAME_RULES: &[(&str, convert_case::Case)] = &[
-    ("lowercase", Case::Lower),
-    ("UPPERCASE", Case::Upper),
-    ("PascalCase", Case::Pascal),
-    ("camelCase", Case::Camel),
-    ("snake_case", Case::Snake),
-    ("SCREAMING_SNAKE_CASE", Case::ScreamingSnake),
-    ("kebab-case", Case::Kebab),
-    // ("SCREAMING-KEBAB-CASE", _), // not supported by convert_case
-];
-
 /// Conversion of Rust Enum to Typescript using external tagging as per https://serde.rs/enum-representations.html
 /// however conversion will adhere to the `serde` `tag` such that enums are intenrally tagged
 /// (while the other forms such as adjacent tagging aren't supported).
 /// `rename_all` attributes for the name of the tag will also be adhered to.
 impl super::ToTypescript for syn::ItemEnum {
-    fn convert_to_ts(self, state: &mut BuildState, debug: bool, uses_typeinterface: bool) {
+    fn convert_to_ts(self, state: &mut BuildState, uses_type_interface: bool) {
         // check we don't have any tuple structs that could mess things up.
         // if we do ignore this struct
         for variant in self.variants.iter() {
@@ -29,7 +18,7 @@ impl super::ToTypescript for syn::ItemEnum {
                 if f.ident.is_none() {
                     // If we already marked this variant as a newtype, we have a multi-field tuple struct
                     if is_newtype {
-                        if debug {
+                        if crate::DEBUG.try_get().is_some_and(|d| *d) {
                             println!("#[tsync] failed for enum {}", self.ident);
                         }
                         return;
@@ -44,34 +33,34 @@ impl super::ToTypescript for syn::ItemEnum {
 
         let comments = utils::get_comments(self.clone().attrs);
         let casing = utils::get_attribute_arg("serde", "rename_all", &self.attrs);
-        let casing = to_enum_case(casing);
+        let casing = utils::parse_serde_case(casing);
 
         let is_single = !self.variants.iter().any(|x| !x.fields.is_empty());
         state.write_comments(&comments, 0);
 
         if is_single {
             if utils::has_attribute_arg("derive", "Serialize_repr", &self.attrs) {
-                add_numeric_enum(self, state, casing, uses_typeinterface)
+                add_numeric_enum(self, state, casing, uses_type_interface)
             } else {
-                add_enum(self, state, casing, uses_typeinterface)
+                add_enum(self, state, casing, uses_type_interface)
             }
         } else if let Some(tag_name) = utils::get_attribute_arg("serde", "tag", &self.attrs) {
-            add_internally_tagged_enum(tag_name, self, state, casing, uses_typeinterface)
+            add_internally_tagged_enum(tag_name, self, state, casing, uses_type_interface)
         } else {
-            add_externally_tagged_enum(self, state, casing, uses_typeinterface)
+            add_externally_tagged_enum(self, state, casing, uses_type_interface)
         }
     }
 }
 
 /// This convert an all unit enums to a union of const strings in Typescript.
-/// It will ignore any discriminants.  
+/// It will ignore any discriminants.
 fn add_enum(
     exported_struct: syn::ItemEnum,
     state: &mut BuildState,
     casing: Option<Case>,
-    uses_typeinterface: bool,
+    uses_type_interface: bool,
 ) {
-    let export = if uses_typeinterface { "" } else { "export " };
+    let export = if uses_type_interface { "" } else { "export " };
     state.types.push_str(&format!(
         "{export}type {interface_name} =\n{space}",
         interface_name = exported_struct.ident,
@@ -104,9 +93,9 @@ fn add_enum(
 /// ``` to the following
 /// ```ignore
 /// enum Foo {
-///    Bar = 0,          
-///    Baz = 123,     
-///    Quux = 124,           
+///    Bar = 0,
+///    Baz = 123,
+///    Quux = 124,
 /// }
 /// enum Animal {
 ///    Dog = 0,
@@ -118,13 +107,9 @@ fn add_numeric_enum(
     exported_struct: syn::ItemEnum,
     state: &mut BuildState,
     casing: Option<Case>,
-    uses_typeinterface: bool,
+    uses_type_interface: bool,
 ) {
-    let declare = if uses_typeinterface {
-        "declare "
-    } else {
-        "export "
-    };
+    let declare = if uses_type_interface { "declare " } else { "export " };
     state.types.push_str(&format!(
         "{declare}enum {interface_name} {{",
         interface_name = exported_struct.ident
@@ -178,9 +163,9 @@ fn add_numeric_enum(
 /// ``` to the following
 /// ```ignore
 /// enum Foo {
-///    Bar = 0,          
-///    Baz = 123,     
-///    Quux = 124,           
+///    Bar = 0,
+///    Baz = 123,
+///    Quux = 124,
 /// }
 /// enum Animal {
 ///    Dog = 0,
@@ -192,9 +177,9 @@ fn add_internally_tagged_enum(
     exported_struct: syn::ItemEnum,
     state: &mut BuildState,
     casing: Option<Case>,
-    uses_typeinterface: bool,
+    uses_type_interface: bool,
 ) {
-    let export = if uses_typeinterface { "" } else { "export " };
+    let export = if uses_type_interface { "" } else { "export " };
     state.types.push_str(&format!(
         "{export}type {interface_name}{generics} =",
         interface_name = exported_struct.ident,
@@ -203,11 +188,7 @@ fn add_internally_tagged_enum(
 
     for variant in exported_struct.variants.iter() {
         // Assumes that non-newtype tuple variants have already been filtered out
-        let is_newtype = variant
-            .fields
-            .iter()
-            .fold(false, |state, v| state || v.ident.is_none());
-        if is_newtype {
+        if variant.fields.iter().any(|v| v.ident.is_none()) {
             // TODO: Generate newtype structure
             // This should contain the discriminant plus all fields of the inner structure as a flat structure
             // TODO: Check for case where discriminant name matches an inner structure field name
@@ -226,11 +207,7 @@ fn add_internally_tagged_enum(
 
     for variant in exported_struct.variants {
         // Assumes that non-newtype tuple variants have already been filtered out
-        let is_newtype = variant
-            .fields
-            .iter()
-            .fold(false, |state, v| state || v.ident.is_none());
-        if !is_newtype {
+        if !variant.fields.iter().any(|v| v.ident.is_none()) {
             state.types.push('\n');
             let comments = utils::get_comments(variant.attrs);
             state.write_comments(&comments, 0);
@@ -252,11 +229,11 @@ fn add_internally_tagged_enum(
                 tag_name,
                 field_name,
             ));
-            super::structs::process_fields(variant.fields, state, 2);
+            super::structs::process_fields(variant.fields, state, 2, casing);
             state.types.push_str("};");
         }
     }
-    state.types.push_str("\n");
+    state.types.push('\n');
 }
 
 /// This follows serde's default approach of external tagging
@@ -264,9 +241,9 @@ fn add_externally_tagged_enum(
     exported_struct: syn::ItemEnum,
     state: &mut BuildState,
     casing: Option<Case>,
-    uses_typeinterface: bool,
+    uses_type_interface: bool,
 ) {
-    let export = if uses_typeinterface { "" } else { "export " };
+    let export = if uses_type_interface { "" } else { "export " };
     state.types.push_str(&format!(
         "{export}type {interface_name}{generics} =",
         interface_name = exported_struct.ident,
@@ -283,20 +260,15 @@ fn add_externally_tagged_enum(
             variant.ident.to_string()
         };
         // Assumes that non-newtype tuple variants have already been filtered out
-        let is_newtype = variant
-            .fields
-            .iter()
-            .fold(false, |state, v| state || v.ident.is_none());
+        let is_newtype = variant.fields.iter().any(|v| v.ident.is_none());
 
         if is_newtype {
             // add discriminant
             state.types.push_str(&format!("  | {{ \"{}\":", field_name));
             for field in variant.fields {
-                state
-                    .types
-                    .push_str(&format!(" {}", convert_type(&field.ty).ts_type,));
+                state.types.push_str(&format!(" {}", convert_type(&field.ty).ts_type,));
             }
-            state.types.push_str(&format!(" }}"));
+            state.types.push_str(" }");
         } else {
             // add discriminant
             state.types.push_str(&format!(
@@ -310,7 +282,7 @@ fn add_externally_tagged_enum(
             } else {
                 prepend = utils::build_indentation(6);
                 state.types.push('\n');
-                super::structs::process_fields(variant.fields, state, 8);
+                super::structs::process_fields(variant.fields, state, 8, casing);
             }
             state
                 .types
@@ -318,15 +290,4 @@ fn add_externally_tagged_enum(
         }
     }
     state.types.push_str(";\n");
-}
-
-fn to_enum_case(val: impl Into<Option<String>>) -> Option<Case> {
-    val.into().and_then(|x| {
-        for (name, rule) in RENAME_RULES {
-            if x == *name {
-                return Some(*rule);
-            }
-        }
-        None
-    })
 }

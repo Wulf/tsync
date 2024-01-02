@@ -13,7 +13,7 @@ type EnumTest__One = {
 type EnumTest__Three = {
   type: "THREE";
   /** enum struct property comment */
-  id: string;
+  ID: string;
 };
 
 /** struct comment */

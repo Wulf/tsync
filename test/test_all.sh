@@ -10,3 +10,4 @@ cd $SCRIPT_DIR
 ./const/tsync.sh
 ./enum/tsync.sh
 ./doc_comments/tsync.sh
+./generic/tsync.sh

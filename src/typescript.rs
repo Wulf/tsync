@@ -20,94 +20,94 @@ fn convert_generic(gen_ty: &syn::GenericArgument) -> TsType {
     }
 }
 
-fn check_cow(cow: &str) -> String {
-    if !cow.contains("Cow<") {
-        return cow.to_owned();
-    }
-
-    if let Some(comma_pos) = cow
-        .chars()
-        .enumerate()
-        .find(|(_, c)| c == &',')
-        .map(|(i, _)| i)
-    {
-        let cow = cow[comma_pos + 1..].trim();
-        if let Some(c) = cow.strip_suffix('>') {
-            return try_match_ident_str(c);
-        }
-    }
-
-    cow.to_owned()
-}
-
-fn try_match_ident_str(ident: &str) -> String {
+/// Returns Err(()) when no match is found
+fn try_match_ident_str(ident: &str) -> Result<String, ()> {
     match ident {
-        "i8" => "number".to_owned(),
-        "u8" => "number".to_owned(),
-        "i16" => "number".to_owned(),
-        "u16" => "number".to_owned(),
-        "i32" => "number".to_owned(),
-        "u32" => "number".to_owned(),
-        "i64" => "number".to_owned(),
-        "u64" => "number".to_owned(),
-        "i128" => "number".to_owned(),
-        "u128" => "number".to_owned(),
-        "isize" => "number".to_owned(),
-        "usize" => "number".to_owned(),
-        "f32" => "number".to_owned(),
-        "f64" => "number".to_owned(),
-        "bool" => "boolean".to_owned(),
-        "char" => "string".to_owned(),
-        "str" => "string".to_owned(),
-        "String" => "string".to_owned(),
-        "NaiveDateTime" => "Date".to_owned(),
-        "DateTime" => "Date".to_owned(),
-        "Uuid" => "string".to_owned(),
-        _ => ident.to_owned(),
+        "i8" => Ok("number".to_owned()),
+        "u8" => Ok("number".to_owned()),
+        "i16" => Ok("number".to_owned()),
+        "u16" => Ok("number".to_owned()),
+        "i32" => Ok("number".to_owned()),
+        "u32" => Ok("number".to_owned()),
+        "i64" => Ok("number".to_owned()),
+        "u64" => Ok("number".to_owned()),
+        "i128" => Ok("number".to_owned()),
+        "u128" => Ok("number".to_owned()),
+        "isize" => Ok("number".to_owned()),
+        "usize" => Ok("number".to_owned()),
+        "f32" => Ok("number".to_owned()),
+        "f64" => Ok("number".to_owned()),
+        "bool" => Ok("boolean".to_owned()),
+        "char" => Ok("string".to_owned()),
+        "str" => Ok("string".to_owned()),
+        "String" => Ok("string".to_owned()),
+        "NaiveDateTime" => Ok("Date".to_owned()),
+        "DateTime" => Ok("Date".to_owned()),
+        "Uuid" => Ok("string".to_owned()),
+        _ => Err(()),
     }
 }
 
-fn try_match_with_args(ident: &str, args: &syn::PathArguments) -> TsType {
+/// Returns Err(()) when no match is found
+fn try_match_with_args(ident: &str, args: &syn::PathArguments) -> Result<TsType, ()> {
     match ident {
-        "Cow" => {
-            match &args {
-                syn::PathArguments::AngleBracketed(angle_bracketed_argument) => {
-                    let Some(arg) = angle_bracketed_argument
-                        .args
-                        .iter()
-                        .find(|arg| matches!(arg, syn::GenericArgument::Type(_)))
-                    else {
-                        return "unknown".to_owned().into();
-                    };
+        "Cow" => Ok(match &args {
+            syn::PathArguments::AngleBracketed(angle_bracketed_argument) => {
+                let Some(arg) = angle_bracketed_argument
+                    .args
+                    .iter()
+                    .find(|arg| matches!(arg, syn::GenericArgument::Type(_)))
+                else {
+                    return Ok("unknown".to_owned().into());
+                };
 
-                    convert_generic(arg).ts_type.into()
-                },
-                _ => "unknown".to_owned().into(),
+                convert_generic(arg).ts_type.into()
             }
-        }
-        "Option" => {
-            TsType {
-                is_optional: true,
-                ts_type: match &args {
-                    syn::PathArguments::Parenthesized(parenthesized_argument) => {
-                        format!("{:?}", parenthesized_argument)
-                    }
-                    syn::PathArguments::AngleBracketed(angle_bracketed_argument) => {
-                        convert_generic(angle_bracketed_argument.args.first().unwrap()).ts_type
-                    }
-                    _ => "unknown".to_owned(),
-                },
-            }
-        }
-        "Vec" => {
-            match &args {
+            _ => "unknown".to_owned().into(),
+        }),
+        "Option" => Ok(TsType {
+            is_optional: true,
+            ts_type: match &args {
                 syn::PathArguments::Parenthesized(parenthesized_argument) => {
-                    format!("{:?}", parenthesized_argument).into()
+                    format!("{:?}", parenthesized_argument)
                 }
                 syn::PathArguments::AngleBracketed(angle_bracketed_argument) => {
-                    format!(
-                        "Array<{}>",
-                        match convert_generic(angle_bracketed_argument.args.first().unwrap()) {
+                    convert_generic(angle_bracketed_argument.args.first().unwrap()).ts_type
+                }
+                _ => "unknown".to_owned(),
+            },
+        }),
+        "Vec" => Ok(match &args {
+            syn::PathArguments::Parenthesized(parenthesized_argument) => {
+                format!("{:?}", parenthesized_argument).into()
+            }
+            syn::PathArguments::AngleBracketed(angle_bracketed_argument) => format!(
+                "Array<{}>",
+                match convert_generic(angle_bracketed_argument.args.first().unwrap()) {
+                    TsType {
+                        is_optional: true,
+                        ts_type,
+                    } => format!("{} | undefined", ts_type),
+                    TsType {
+                        is_optional: false,
+                        ts_type,
+                    } => ts_type,
+                }
+            )
+            .into(),
+            _ => "unknown".to_owned().into(),
+        }),
+        "HashMap" => Ok(match &args {
+            syn::PathArguments::Parenthesized(parenthesized_argument) => {
+                format!("{:?}", parenthesized_argument).into()
+            }
+            syn::PathArguments::AngleBracketed(angle_bracketed_argument) => format!(
+                "Record<{}>",
+                angle_bracketed_argument
+                    .args
+                    .iter()
+                    .map(|arg| {
+                        match convert_generic(arg) {
                             TsType {
                                 is_optional: true,
                                 ts_type,
@@ -117,48 +117,47 @@ fn try_match_with_args(ident: &str, args: &syn::PathArguments) -> TsType {
                                 ts_type,
                             } => ts_type,
                         }
-                    )
-                    .into()
-                }
-                _ => "unknown".to_owned().into(),
-            }
-        }
-        "HashMap" => {
-            match &args {
-                syn::PathArguments::Parenthesized(parenthesized_argument) => {
-                    format!("{:?}", parenthesized_argument).into()
-                }
-                syn::PathArguments::AngleBracketed(angle_bracketed_argument) => {
-                    format!(
-                        "Record<{}>",
-                        angle_bracketed_argument
-                            .args
-                            .iter()
-                            .map(|arg| {
-                                match convert_generic(arg) {
-                                    TsType {
-                                        is_optional: true,
-                                        ts_type,
-                                    } => format!("{} | undefined", ts_type),
-                                    TsType {
-                                        is_optional: false,
-                                        ts_type,
-                                    } => ts_type,
-                                }
-                            })
-                            .collect::<Vec<String>>()
-                            .join(", ")
-                    )
-                    .into()
-                }
-                _ => "unknown".to_owned().into(),
-            }
-        }
-        _ => ident.to_owned().into(),
+                    })
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            )
+            .into(),
+            _ => "unknown".to_owned().into(),
+        }),
+        _ => Err(()),
     }
 }
 
-const COMPLEX_TYPES: [&str; 4usize] = ["Option", "Vec", "HashMap", "Cow"];
+pub fn extract_custom_type(segment: &syn::PathSegment) -> Result<TsType, ()> {
+    let ident = segment.ident.to_string();
+    let args = &segment.arguments;
+
+    match args {
+        syn::PathArguments::None => Ok(ident.into()),
+        syn::PathArguments::AngleBracketed(angle_bracketed_argument) => {
+            let args = angle_bracketed_argument
+                .args
+                .iter()
+                .map(|arg| match convert_generic(arg) {
+                    TsType {
+                        is_optional: true,
+                        ts_type,
+                    } => format!("{} | undefined", ts_type),
+                    TsType {
+                        is_optional: false,
+                        ts_type,
+                    } => ts_type,
+                })
+                .collect::<Vec<String>>()
+                .join(", ");
+
+            Ok(format!("{}<{}>", ident, args).into())
+        }
+        syn::PathArguments::Parenthesized(parenthesized_argument) => {
+            Err(()) // tuples are not supported yet
+        }
+    }
+}
 
 pub fn convert_type(ty: &syn::Type) -> TsType {
     match ty {
@@ -167,10 +166,14 @@ pub fn convert_type(ty: &syn::Type) -> TsType {
             let segment = p.path.segments.last().unwrap();
             let identifier = segment.ident.to_string();
 
-            if COMPLEX_TYPES.contains(&identifier.as_str()) {
-                try_match_with_args(&identifier, &segment.arguments)
+            if let Ok(ts_type) = try_match_ident_str(&identifier) {
+                ts_type.into()
+            } else if let Ok(ts_type) = try_match_with_args(&identifier, &segment.arguments) {
+                ts_type.into()
+            } else if let Ok(ts_type) = extract_custom_type(&segment) {
+                ts_type.into()
             } else {
-                try_match_ident_str(&identifier).into()
+                "unknown".to_owned().into()
             }
         }
         _ => "unknown".to_owned().into(),

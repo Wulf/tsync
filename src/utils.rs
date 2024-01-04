@@ -52,7 +52,9 @@ fn check_token(token: proc_macro2::TokenTree, arg: &str) -> Option<String> {
     // this detects the '(...)' part in #[serde(rename_all = "UPPERCASE", tag = "type")]
     // we can use this to get the value of a particular argument
     // or to see if it exists at all
-    let proc_macro2::TokenTree::Group(group) = token else { return None; };
+    let proc_macro2::TokenTree::Group(group) = token else {
+        return None;
+    };
 
     // Make sure the delimiter is what we're expecting, otherwise return right away.
     if group.delimiter() != proc_macro2::Delimiter::Parenthesis {
@@ -60,7 +62,10 @@ fn check_token(token: proc_macro2::TokenTree, arg: &str) -> Option<String> {
     }
 
     // First check to see if the group is a `MetaNameValue`, (.e.g `feature = "nightly"`)
-    match Parser::parse2(Punctuated::<MetaNameValue, Token![,]>::parse_terminated, group.stream()) {
+    match Parser::parse2(
+        Punctuated::<MetaNameValue, Token![,]>::parse_terminated,
+        group.stream(),
+    ) {
         Ok(name_value_pairs) => {
             // If so move the pairs into an iterator
             name_value_pairs
@@ -76,19 +81,22 @@ fn check_token(token: proc_macro2::TokenTree, arg: &str) -> Option<String> {
             // Otherwise, check to see if the group is a `Expr` of `Punctuated<_, P>` attributes,
             // separated by `P`, `Token![,]` in this case.
             // (.e.g `default, skip_serializing`)
-            Parser::parse2(Punctuated::<Expr, Token![,]>::parse_terminated, group.stream())
-                // If the expression cannot be parsed, return None
-                .map_or(None, |comma_seperated_values| {
-                    // Otherwise move the pairs into an iterator
-                    comma_seperated_values
-                        .into_iter()
-                        // Checking each is a `ExprPath`, object, yielding elements while the method
-                        // returns true.
-                        .map_while(check_expression_is_path)
-                        // Check if any yielded paths equal `arg`
-                        .any(|expr_path| expr_path.path.segments[0].ident.to_string().eq(arg))
-                        // If so, return `Some(arg)`, otherwise `None`.
-                        .then_some(arg.to_owned())
+            Parser::parse2(
+                Punctuated::<Expr, Token![,]>::parse_terminated,
+                group.stream(),
+            )
+            // If the expression cannot be parsed, return None
+            .map_or(None, |comma_seperated_values| {
+                // Otherwise move the pairs into an iterator
+                comma_seperated_values
+                    .into_iter()
+                    // Checking each is a `ExprPath`, object, yielding elements while the method
+                    // returns true.
+                    .map_while(check_expression_is_path)
+                    // Check if any yielded paths equal `arg`
+                    .any(|expr_path| expr_path.path.segments[0].ident.to_string().eq(arg))
+                    // If so, return `Some(arg)`, otherwise `None`.
+                    .then_some(arg.to_owned())
             })
         }
     }
@@ -123,7 +131,9 @@ pub fn has_attribute_arg(needle: &str, arg: &str, attributes: &[syn::Attribute])
 /// Given an attribute like `#[doc = "Single line doc comments"]`, only `Single line doc comments`
 /// should be returned.
 fn check_doc_tokens(tt: proc_macro2::TokenTree) -> Option<String> {
-    let proc_macro2::TokenTree::Literal(comment) = tt else { return None; };
+    let proc_macro2::TokenTree::Literal(comment) = tt else {
+        return None;
+    };
     let c = comment.to_string();
     Some(c[1..c.len() - 1].trim().to_owned())
 }
@@ -135,7 +145,9 @@ fn check_doc_tokens(tt: proc_macro2::TokenTree) -> Option<String> {
 fn check_doc_attribute(attr: &syn::Attribute) -> Vec<String> {
     // Check if the attribute's meta is a NameValue, otherwise return
     // right away.
-    let syn::Meta::NameValue(ref nv) = attr.meta else { return Default::default(); };
+    let syn::Meta::NameValue(ref nv) = attr.meta else {
+        return Default::default();
+    };
 
     // Convert the value to a token stream, then iterate it, collecting
     // only valid comment string.
@@ -152,12 +164,7 @@ fn check_doc_attribute(attr: &syn::Attribute) -> Vec<String> {
 pub fn get_comments(mut attributes: Vec<syn::Attribute>) -> Vec<String> {
     // Retains only attributes that have segments equal to "doc".
     // (.e.g. #[doc = "Single line doc comments"])
-    attributes.retain(|x| {
-        x.path()
-            .segments
-            .iter()
-            .any(|seg| seg.ident == "doc")
-    });
+    attributes.retain(|x| x.path().segments.iter().any(|seg| seg.ident == "doc"));
 
     attributes
         .iter()
@@ -222,7 +229,7 @@ pub fn get_attribute<'a>(
                 .segments
                 .iter()
                 .any(|segment| segment.ident == needle)
-    })
+        })
 }
 
 pub(crate) fn parse_serde_case(val: impl Into<Option<String>>) -> Option<convert_case::Case> {

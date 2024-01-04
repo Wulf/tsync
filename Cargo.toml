@@ -1,12 +1,17 @@
 [package]
 name = "tsync"
 description = "Generate typescript types from rust code."
-version = "2.0.1"
+version = "2.1.0"
 readme = "README.md"
 repository = "https://github.com/Wulf/tsync"
 license = "MIT OR Apache-2.0"
 keywords = ["typescript", "types", "generation", "macro"]
-categories = ["command-line-utilities", "development-tools", "development-tools::ffi", "web-programming"]
+categories = [
+    "command-line-utilities",
+    "development-tools",
+    "development-tools::ffi",
+    "web-programming",
+]
 authors = ["Haris <4259838+Wulf@users.noreply.github.com>"]
 edition = "2018"
 
@@ -21,7 +26,7 @@ convert_case = "0.6.0"
 state = "0.6.0"
 
 [dev-dependencies]
-serde = { version = "1", features = ["derive"]}
+serde = { version = "1", features = ["derive"] }
 
 [lib]
 name = "tsync"

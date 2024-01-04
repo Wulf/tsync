@@ -1,7 +1,7 @@
 use tsync::tsync;
 
 /*
- * This test was introduced because of a bug where the "Paginated<T>" type would
+ * This test was introduced because of a bug where the "Paginated<Folder>" type would
  * be converted to "Paginated" without the generic type.
  */
 

@@ -42,6 +42,12 @@ pub struct BuildState /*<'a>*/ {
     // pub ignore_file_config: Option<gitignore::File<'a>>,
 }
 
+/// Settings for the build process
+#[derive(Default)]
+pub struct BuildSettings {
+    pub uses_type_interface: bool,
+}
+
 // fn should_ignore_file(ignore_file: &gitignore::File, entry: &DirEntry) -> bool {
 //     let path = entry.path();
 
@@ -75,26 +81,26 @@ impl BuildState {
     }
 }
 
-fn process_rust_item(item: syn::Item, state: &mut BuildState, uses_type_interface: bool) {
+fn process_rust_item(item: syn::Item, state: &mut BuildState, config: &BuildSettings) {
     match item {
         syn::Item::Const(exported_const) => {
             check_tsync!(exported_const, in: "const", {
-                exported_const.convert_to_ts(state, uses_type_interface);
+                exported_const.convert_to_ts(state, config);
             });
         }
         syn::Item::Struct(exported_struct) => {
             check_tsync!(exported_struct, in: "struct", {
-                exported_struct.convert_to_ts(state, uses_type_interface);
+                exported_struct.convert_to_ts(state, config);
             });
         }
         syn::Item::Enum(exported_enum) => {
             check_tsync!(exported_enum, in: "enum", {
-                exported_enum.convert_to_ts(state, uses_type_interface);
+                exported_enum.convert_to_ts(state, config);
             });
         }
         syn::Item::Type(exported_type) => {
             check_tsync!(exported_type, in: "type", {
-                exported_type.convert_to_ts(state, uses_type_interface);
+                exported_type.convert_to_ts(state, config);
             });
         }
         _ => {}
@@ -104,7 +110,7 @@ fn process_rust_item(item: syn::Item, state: &mut BuildState, uses_type_interfac
 fn process_rust_file<P: AsRef<Path>>(
     input_path: P,
     state: &mut BuildState,
-    uses_type_interface: bool,
+    config: &BuildSettings,
 ) {
     if *DEBUG.get() {
         println!("processing rust file: {:?}", input_path.as_ref().to_str());
@@ -123,7 +129,7 @@ fn process_rust_file<P: AsRef<Path>>(
     syntax
         .items
         .into_iter()
-        .for_each(|item| process_rust_item(item, state, uses_type_interface))
+        .for_each(|item| process_rust_item(item, state, config))
 }
 
 fn check_path<P: AsRef<Path>>(path: P, state: &mut BuildState) -> bool {
@@ -170,7 +176,7 @@ fn validate_dir_entry(entry_result: walkdir::Result<DirEntry>, path: &Path) -> O
     }
 }
 
-fn process_dir_entry<P: AsRef<Path>>(path: P, state: &mut BuildState, uses_type_interface: bool) {
+fn process_dir_entry<P: AsRef<Path>>(path: P, state: &mut BuildState, config: &BuildSettings) {
     WalkDir::new(path.as_ref())
         .sort_by_file_name()
         .into_iter()
@@ -182,7 +188,7 @@ fn process_dir_entry<P: AsRef<Path>>(path: P, state: &mut BuildState, uses_type_
                 .extension()
                 .is_some_and(|extension| check_extension(extension, path.as_ref()))
             {
-                process_rust_file(entry.path(), state, uses_type_interface)
+                process_rust_file(entry.path(), state, config)
             }
         })
 }
@@ -195,6 +201,10 @@ pub fn generate_typescript_defs(input: Vec<PathBuf>, output: PathBuf, debug: boo
         .map(|x| x.ends_with(".d.ts"))
         .unwrap_or(true);
 
+    let config = BuildSettings {
+        uses_type_interface,
+    };
+
     let mut state = BuildState::default();
 
     state
@@ -204,9 +214,9 @@ pub fn generate_typescript_defs(input: Vec<PathBuf>, output: PathBuf, debug: boo
     input.into_iter().for_each(|path| {
         if check_path(&path, &mut state) {
             if path.is_dir() {
-                process_dir_entry(&path, &mut state, uses_type_interface)
+                process_dir_entry(&path, &mut state, &config)
             } else {
-                process_rust_file(&path, &mut state, uses_type_interface);
+                process_rust_file(&path, &mut state, &config);
             }
         }
     });

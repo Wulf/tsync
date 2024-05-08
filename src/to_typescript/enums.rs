@@ -8,7 +8,7 @@ use syn::__private::ToTokens;
 /// (while the other forms such as adjacent tagging aren't supported).
 /// `rename_all` attributes for the name of the tag will also be adhered to.
 impl super::ToTypescript for syn::ItemEnum {
-    fn convert_to_ts(self, state: &mut BuildState, uses_type_interface: bool) {
+    fn convert_to_ts(self, state: &mut BuildState, config: &crate::BuildSettings) {
         // check we don't have any tuple structs that could mess things up.
         // if we do ignore this struct
         for variant in self.variants.iter() {
@@ -40,14 +40,14 @@ impl super::ToTypescript for syn::ItemEnum {
 
         if is_single {
             if utils::has_attribute_arg("derive", "Serialize_repr", &self.attrs) {
-                add_numeric_enum(self, state, casing, uses_type_interface)
+                add_numeric_enum(self, state, casing, config.uses_type_interface)
             } else {
-                add_enum(self, state, casing, uses_type_interface)
+                add_enum(self, state, casing, config.uses_type_interface)
             }
         } else if let Some(tag_name) = utils::get_attribute_arg("serde", "tag", &self.attrs) {
-            add_internally_tagged_enum(tag_name, self, state, casing, uses_type_interface)
+            add_internally_tagged_enum(tag_name, self, state, casing, config.uses_type_interface)
         } else {
-            add_externally_tagged_enum(self, state, casing, uses_type_interface)
+            add_externally_tagged_enum(self, state, casing, config.uses_type_interface)
         }
     }
 }

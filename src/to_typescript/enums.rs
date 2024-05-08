@@ -40,7 +40,7 @@ impl super::ToTypescript for syn::ItemEnum {
 
         if is_single {
             if utils::has_attribute_arg("derive", "Serialize_repr", &self.attrs) {
-                add_numeric_enum(self, state, casing, config.uses_type_interface)
+                add_numeric_enum(self, state, casing, config)
             } else {
                 add_enum(self, state, casing, config.uses_type_interface)
             }
@@ -80,6 +80,12 @@ fn add_enum(
 }
 
 /// Numeric enums. These will be converted using enum syntax
+/// or const enum syntax, depending on the `const_enum` parameter.
+///
+/// # Examples
+///
+/// Given the following Rust code:
+///
 /// ```ignore
 /// enum Foo {
 ///     Bar,            // 0
@@ -90,7 +96,24 @@ fn add_enum(
 ///     Dog,
 ///     Cat,
 /// }
-/// ``` to the following
+/// ```
+///
+/// If the `enable_const_enums` field of `config` is `true`,
+/// the items will be converted using const enum syntax:
+/// ```ignore
+/// const enum Foo {
+///    Bar = 0,
+///    Baz = 123,
+///    Quux = 124,
+/// }
+/// const enum Animal {
+///    Dog = 0,
+///    Cat = 1,
+/// }
+/// ```
+///
+/// If the `enable_const_enums` field of `config` is `false`,
+/// the items will be converted using enum syntax:
 /// ```ignore
 /// enum Foo {
 ///    Bar = 0,
@@ -102,16 +125,16 @@ fn add_enum(
 ///    Cat = 1,
 /// }
 /// ```
-///
 fn add_numeric_enum(
     exported_struct: syn::ItemEnum,
     state: &mut BuildState,
     casing: Option<Case>,
-    uses_type_interface: bool,
+    config: &crate::BuildSettings,
 ) {
-    let declare = if uses_type_interface { "declare " } else { "export " };
+    let declare = if config.uses_type_interface { "declare " } else { "export " };
+    let const_ = if config.enable_const_enums { "const " } else { "" };
     state.types.push_str(&format!(
-        "{declare}enum {interface_name} {{",
+        "{declare}{const_}enum {interface_name} {{",
         interface_name = exported_struct.ident
     ));
 

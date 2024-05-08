@@ -46,6 +46,7 @@ pub struct BuildState /*<'a>*/ {
 #[derive(Default)]
 pub struct BuildSettings {
     pub uses_type_interface: bool,
+    pub enable_const_enums: bool,
 }
 
 // fn should_ignore_file(ignore_file: &gitignore::File, entry: &DirEntry) -> bool {
@@ -188,12 +189,17 @@ fn process_dir_entry<P: AsRef<Path>>(path: P, state: &mut BuildState, config: &B
                 .extension()
                 .is_some_and(|extension| check_extension(extension, path.as_ref()))
             {
-                process_rust_file(entry.path(), state, config)
+                process_rust_file(entry.path(), state, config);
             }
         })
 }
 
-pub fn generate_typescript_defs(input: Vec<PathBuf>, output: PathBuf, debug: bool) {
+pub fn generate_typescript_defs(
+    input: Vec<PathBuf>,
+    output: PathBuf,
+    debug: bool,
+    enable_const_enums: bool,
+) {
     DEBUG.set(debug);
 
     let uses_type_interface = output
@@ -203,6 +209,7 @@ pub fn generate_typescript_defs(input: Vec<PathBuf>, output: PathBuf, debug: boo
 
     let config = BuildSettings {
         uses_type_interface,
+        enable_const_enums,
     };
 
     let mut state = BuildState::default();

@@ -3,9 +3,9 @@ use syn::__private::ToTokens;
 use crate::{utils, BuildState};
 
 impl super::ToTypescript for syn::ItemConst {
-    fn convert_to_ts(self, state: &mut BuildState, uses_type_interface: bool) {
+    fn convert_to_ts(self, state: &mut BuildState, config: &crate::BuildSettings) {
         // ignore if we aren't in a type interface
-        if uses_type_interface {
+        if config.uses_type_interface {
             return;
         }
 

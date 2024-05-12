@@ -153,7 +153,7 @@ pub fn extract_custom_type(segment: &syn::PathSegment) -> Result<TsType, ()> {
 
             Ok(format!("{}<{}>", ident, args).into())
         }
-        syn::PathArguments::Parenthesized(parenthesized_argument) => {
+        syn::PathArguments::Parenthesized(_parenthesized_argument) => {
             Err(()) // tuples are not supported yet
         }
     }

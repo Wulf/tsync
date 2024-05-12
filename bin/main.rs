@@ -10,6 +10,14 @@ struct Args {
     #[structopt(long, help = "Dry-run, prints to stdout", short = "d", long = "debug")]
     debug: bool,
 
+    /// Enable const enums
+    #[structopt(
+        short = "c",
+        long = "const-enums",
+        help = "Enable generating const enums"
+    )]
+    enable_const_enums: bool,
+
     // TODO: add "create-module" functionality (so generated types can be under a specified namespace like Rust.MyType)
     // useModules: bool,
 
@@ -43,5 +51,5 @@ struct Args {
 fn main() {
     let args: Args = Args::from_args();
 
-    tsync::generate_typescript_defs(args.input, args.output, args.debug);
+    tsync::generate_typescript_defs(args.input, args.output, args.debug, args.enable_const_enums);
 }

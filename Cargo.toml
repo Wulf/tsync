@@ -27,6 +27,7 @@ state = "0.6.0"
 
 [dev-dependencies]
 serde = { version = "1", features = ["derive"] }
+goldenfile = "1.7.1"
 
 [lib]
 name = "tsync"

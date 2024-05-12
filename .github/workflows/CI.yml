@@ -62,5 +62,6 @@ jobs:
             ./target
             ~/.cargo
           key: ${{ runner.os }}-cargo-dev-${{ hashFiles('**/Cargo.lock') }}
+      - run: cargo test --all-targets --all-features
       - run: bash test/test_all.sh
       - run: git diff --exit-code --quiet || exit 1

@@ -52,10 +52,31 @@ fn test_const() {
     register_goldenfile(&mut mint, &base_path, "typescript.ts");
 
     // Generate the typescript definitions
-    tsync::generate_typescript_defs(vec![input.clone()], output1, false);
-    tsync::generate_typescript_defs(vec![input], output2, false);
+    tsync::generate_typescript_defs(vec![input.clone()], output1, false, false);
+    tsync::generate_typescript_defs(vec![input], output2, false, false);
 
     // Compare the generated files to the checked-in golden files
+    teardown_mint(mint);
+}
+
+#[test]
+fn test_const_enum_numeric() {
+    let base_path = PathBuf::from("test/const_enum_numeric");
+    let input = base_path.join("rust.rs");
+    let output1 = base_path.join("typescript.d.ts");
+    let output2 = base_path.join("typescript.ts");
+
+    // Create a new goldenfile mint
+    let mut mint = Mint::new(&base_path);
+    // Register the goldenfiles
+    register_goldenfile(&mut mint, &base_path, "typescript.d.ts");
+    register_goldenfile(&mut mint, &base_path, "typescript.ts");
+
+    // Generate the typescript definitions
+    tsync::generate_typescript_defs(vec![input.clone()], output1, false, true);
+    tsync::generate_typescript_defs(vec![input], output2, false, true);
+
+    // Compare the generated files to the checked-in golden files and reset the goldenfiles
     teardown_mint(mint);
 }
 
@@ -71,7 +92,7 @@ fn test_directory_input() {
     register_goldenfile(&mut mint, &base_path, "typescript.d.ts");
 
     // Generate the typescript definitions
-    tsync::generate_typescript_defs(vec![input], output, false);
+    tsync::generate_typescript_defs(vec![input], output, false, false);
 
     // Compare the generated files to the checked-in golden files and reset the goldenfiles
     teardown_mint(mint);
@@ -91,8 +112,8 @@ fn test_doc_comments() {
     register_goldenfile(&mut mint, &base_path, "typescript.ts");
 
     // Generate the typescript definitions
-    tsync::generate_typescript_defs(vec![input.clone()], output1, false);
-    tsync::generate_typescript_defs(vec![input], output2, false);
+    tsync::generate_typescript_defs(vec![input.clone()], output1, false, false);
+    tsync::generate_typescript_defs(vec![input], output2, false, false);
 
     // Compare the generated files to the checked-in golden files and reset the goldenfiles
     teardown_mint(mint);
@@ -112,8 +133,8 @@ fn test_enum() {
     register_goldenfile(&mut mint, &base_path, "typescript.ts");
 
     // Generate the typescript definitions
-    tsync::generate_typescript_defs(vec![input.clone()], output1, false);
-    tsync::generate_typescript_defs(vec![input], output2, false);
+    tsync::generate_typescript_defs(vec![input.clone()], output1, false, false);
+    tsync::generate_typescript_defs(vec![input], output2, false, false);
 
     // Compare the generated files to the checked-in golden files and reset the goldenfiles
     teardown_mint(mint);
@@ -133,8 +154,8 @@ fn test_enum_numeric() {
     register_goldenfile(&mut mint, &base_path, "typescript.ts");
 
     // Generate the typescript definitions
-    tsync::generate_typescript_defs(vec![input.clone()], output1, false);
-    tsync::generate_typescript_defs(vec![input], output2, false);
+    tsync::generate_typescript_defs(vec![input.clone()], output1, false, false);
+    tsync::generate_typescript_defs(vec![input], output2, false, false);
 
     // Compare the generated files to the checked-in golden files and reset the goldenfiles
     teardown_mint(mint);
@@ -154,8 +175,8 @@ fn test_generic() {
     register_goldenfile(&mut mint, &base_path, "typescript.ts");
 
     // Generate the typescript definitions
-    tsync::generate_typescript_defs(vec![input.clone()], output1, false);
-    tsync::generate_typescript_defs(vec![input], output2, false);
+    tsync::generate_typescript_defs(vec![input.clone()], output1, false, false);
+    tsync::generate_typescript_defs(vec![input], output2, false, false);
 
     // Compare the generated files to the checked-in golden files and reset the goldenfiles
     teardown_mint(mint);
@@ -175,8 +196,8 @@ fn test_struct() {
     register_goldenfile(&mut mint, &base_path, "typescript.ts");
 
     // Generate the typescript definitions
-    tsync::generate_typescript_defs(vec![input.clone()], output1, false);
-    tsync::generate_typescript_defs(vec![input], output2, false);
+    tsync::generate_typescript_defs(vec![input.clone()], output1, false, false);
+    tsync::generate_typescript_defs(vec![input], output2, false, false);
 
     // Compare the generated files to the checked-in golden files and reset the goldenfiles
     teardown_mint(mint);
@@ -194,7 +215,7 @@ fn test_type() {
     register_goldenfile(&mut mint, &base_path, "typescript.d.ts");
 
     // Generate the typescript definitions
-    tsync::generate_typescript_defs(vec![input], output, false);
+    tsync::generate_typescript_defs(vec![input], output, false, false);
 
     // Compare the generated files to the checked-in golden files and reset the goldenfiles
     teardown_mint(mint);

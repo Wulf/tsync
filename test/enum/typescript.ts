@@ -66,3 +66,10 @@ export type Animal =
 
 export type AnimalTwo =
   | "dog_long_extra" | "cat";
+
+export type Tagged =
+  | Tagged__Test;
+
+type Tagged__Test = {
+  type: "Test";
+};

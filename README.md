@@ -2,7 +2,7 @@
 
 <a href="https://crates.io/crates/tsync"><img src="https://img.shields.io/crates/v/tsync.svg?style=for-the-badge" height="20" alt="License: MIT OR Apache-2.0" /></a>
 
-A utility to generate typescript types from rust code.
+A utility to generate typescript types from rust code. Tries to conform to serde's serialized output.
 
 # Install
 

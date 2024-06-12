@@ -35,17 +35,20 @@ impl super::ToTypescript for syn::ItemEnum {
         let casing = utils::get_attribute_arg("serde", "rename_all", &self.attrs);
         let casing = utils::parse_serde_case(casing);
 
+        // is_single means the enum has no variants with fields
+        // i.e. `enum Foo { Bar, Baz }` rather than `enum Foo { Bar, Baz(String) }`
         let is_single = !self.variants.iter().any(|x| !x.fields.is_empty());
         state.write_comments(&comments, 0);
 
-        if is_single {
+        // always use output the internally_tagged representation if the tag is present
+        if let Some(tag_name) = utils::get_attribute_arg("serde", "tag", &self.attrs) {
+            add_internally_tagged_enum(tag_name, self, state, casing, config.uses_type_interface)
+        } else if is_single {
             if utils::has_attribute_arg("derive", "Serialize_repr", &self.attrs) {
                 add_numeric_enum(self, state, casing, config)
             } else {
                 add_enum(self, state, casing, config.uses_type_interface)
             }
-        } else if let Some(tag_name) = utils::get_attribute_arg("serde", "tag", &self.attrs) {
-            add_internally_tagged_enum(tag_name, self, state, casing, config.uses_type_interface)
         } else {
             add_externally_tagged_enum(self, state, casing, config.uses_type_interface)
         }
@@ -131,8 +134,16 @@ fn add_numeric_enum(
     casing: Option<Case>,
     config: &crate::BuildSettings,
 ) {
-    let declare = if config.uses_type_interface { "declare " } else { "export " };
-    let const_ = if config.enable_const_enums { "const " } else { "" };
+    let declare = if config.uses_type_interface {
+        "declare "
+    } else {
+        "export "
+    };
+    let const_ = if config.enable_const_enums {
+        "const "
+    } else {
+        ""
+    };
     state.types.push_str(&format!(
         "{declare}{const_}enum {interface_name} {{",
         interface_name = exported_struct.ident
@@ -289,7 +300,9 @@ fn add_externally_tagged_enum(
             // add discriminant
             state.types.push_str(&format!("  | {{ \"{}\":", field_name));
             for field in variant.fields {
-                state.types.push_str(&format!(" {}", convert_type(&field.ty).ts_type,));
+                state
+                    .types
+                    .push_str(&format!(" {}", convert_type(&field.ty).ts_type,));
             }
             state.types.push_str(" }");
         } else {

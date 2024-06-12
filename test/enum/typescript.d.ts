@@ -66,3 +66,10 @@ type Animal =
 
 type AnimalTwo =
   | "dog_long_extra" | "cat";
+
+type Tagged =
+  | Tagged__Test;
+
+type Tagged__Test = {
+  type: "Test";
+};

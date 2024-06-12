@@ -64,3 +64,10 @@ enum AnimalTwo {
     DogLongExtra = 2,
     Cat,
 }
+
+// Regression: if "serde(tag)" is specified, don't output a string.
+#[tsync]
+#[serde(tag = "type")]
+enum Tagged {
+    Test // this should be { type: "Test" } in the TypeScript (not just the string "Test")
+}

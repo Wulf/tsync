@@ -14,3 +14,5 @@ cd $SCRIPT_DIR
 ./doc_comments/tsync.sh
 ./generic/tsync.sh
 ./issue-43/tsync.sh
+./issue-55/tsync.sh
+./issue-58/tsync.sh

@@ -127,22 +127,19 @@ pub fn process_fields(
 /// ```ignore
 /// type Todo = [string, number];
 /// ```
-pub(crate) fn process_tuple_fields(fields: syn::FieldsUnnamed, state: &mut BuildState) {
+pub fn process_tuple_fields(fields: syn::FieldsUnnamed, state: &mut BuildState) {
     let out = fields
         .unnamed
         .into_iter()
         .map(|field| {
             let field_type = convert_type(&field.ty);
-            format!("{field_type}", field_type = field_type.ts_type)
+            field_type.ts_type
         })
         .collect::<Vec<String>>();
 
-    if out.is_empty() {
-        return;
-    } else if out.len() == 1 {
-        state.types.push_str(&format!("{}", out[0]));
-        return;
-    } else {
+    if out.len() == 1 {
+        state.types.push_str(&out[0].to_string());
+    } else if !out.is_empty() {
         state.types.push_str(&format!("[ {} ]", out.join(", ")));
     }
 }

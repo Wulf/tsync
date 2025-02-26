@@ -22,6 +22,46 @@ type InternalTopping__ExtraCheese = {
 };
 
 /**
+ * Adjacently tagged enums have a key-value pair
+ * that discrimate which variant it belongs to, and
+ * can support tuple variants
+ */
+type AdjacentTopping =
+  | AdjacentTopping__Pepperoni
+  | AdjacentTopping__ExtraCheese
+  | AdjacentTopping__Custom
+  | AdjacentTopping__CustomTwo;
+
+/**
+ * Tasty!
+ * Not vegetarian
+ */
+type AdjacentTopping__Pepperoni = {
+  type: "Pepperoni";
+};
+/** For cheese lovers */
+type AdjacentTopping__ExtraCheese = {
+  type: "ExtraCheese";
+  kind: string;
+};
+/**
+ * Custom toppings
+ * May expire soon
+ */
+type AdjacentTopping__Custom = {
+  "type": "Custom";
+  "value": CustomTopping;
+};
+/**
+ * two custom toppings
+ * Note: this test case is specifically for specifying a tuple of types
+ */
+type AdjacentTopping__CustomTwo = {
+  "type": "CustomTwo";
+  "value": [ CustomTopping, CustomTopping ];
+};
+
+/**
  * Externally tagged enums ascribe the value to a key
  * that is the same as the variant name
  */
@@ -44,7 +84,12 @@ type ExternalTopping =
    * May expire soon
    * Note: this test case is specifically for specifying a single type in the tuple
    */
-  | { "Custom": CustomTopping };
+  | { "Custom": CustomTopping }
+  /**
+   * two custom toppings
+   * Note: this test case is specifically for specifying a tuple of types
+   */
+  | { "CustomTwo": [ CustomTopping, CustomTopping ] };
 
 interface CustomTopping {
   name: string;

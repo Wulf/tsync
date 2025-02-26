@@ -8,8 +8,9 @@ cd $SCRIPT_DIR
 ./struct/tsync.sh
 ./type/tsync.sh
 ./const/tsync.sh
-./const_enum/tsync.sh
+./const_enum_numeric/tsync.sh
 ./enum/tsync.sh
 ./enum_numeric/tsync.sh
 ./doc_comments/tsync.sh
 ./generic/tsync.sh
+./issue-43/tsync.sh

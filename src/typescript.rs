@@ -5,8 +5,8 @@ pub struct TsType {
 }
 
 impl From<String> for TsType {
-    fn from(ts_type: String) -> TsType {
-        TsType {
+    fn from(ts_type: String) -> Self {
+        Self {
             ts_type,
             is_optional: false,
         }
@@ -169,11 +169,31 @@ pub fn convert_type(ty: &syn::Type) -> TsType {
             if let Ok(ts_type) = try_match_ident_str(&identifier) {
                 ts_type.into()
             } else if let Ok(ts_type) = try_match_with_args(&identifier, &segment.arguments) {
-                ts_type.into()
-            } else if let Ok(ts_type) = extract_custom_type(&segment) {
-                ts_type.into()
+                ts_type
+            } else if let Ok(ts_type) = extract_custom_type(segment) {
+                ts_type
             } else {
                 "unknown".to_owned().into()
+            }
+        }
+        syn::Type::Tuple(t) => {
+            let types = t
+                .elems
+                .iter()
+                .map(convert_type)
+                .map(|ty| {
+                    if ty.is_optional {
+                        format!("{} | undefined", ty.ts_type)
+                    } else {
+                        ty.ts_type
+                    }
+                })
+                .collect::<Vec<String>>()
+                .join(", ");
+
+            TsType {
+                ts_type: format!("[{types}]"),
+                is_optional: false,
             }
         }
         _ => "unknown".to_owned().into(),

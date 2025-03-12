@@ -18,6 +18,9 @@ impl super::ToTypescript for syn::ItemStruct {
 
         let intersections = get_intersections(&self.fields);
 
+        let generics = utils::extract_struct_generics(self.generics.clone());
+        let generics = utils::format_generics(&generics);
+
         match (
             intersections,
             matches!(self.fields, syn::Fields::Unnamed(_)),
@@ -25,9 +28,7 @@ impl super::ToTypescript for syn::ItemStruct {
             (Some(intersections), false) => {
                 state.types.push_str(&format!(
                     "{export}type {struct_name}{generics} = {intersections} & ",
-                    export = export,
                     struct_name = self.ident,
-                    generics = utils::extract_struct_generics(self.generics.clone()),
                     intersections = intersections
                 ));
             }
@@ -35,15 +36,12 @@ impl super::ToTypescript for syn::ItemStruct {
                 state.types.push_str(&format!(
                     "{export}interface {interface_name}{generics} ",
                     interface_name = self.ident,
-                    generics = utils::extract_struct_generics(self.generics.clone())
                 ));
             }
             (None, true) => {
                 state.types.push_str(&format!(
                     "{export}type {struct_name}{generics} = ",
-                    export = export,
                     struct_name = self.ident,
-                    generics = utils::extract_struct_generics(self.generics.clone()),
                 ));
             }
             (Some(_), true) => {

@@ -202,13 +202,29 @@ fn add_internally_tagged_enum(
     uses_type_interface: bool,
 ) {
     let export = if uses_type_interface { "" } else { "export " };
+    let generics = utils::extract_struct_generics(exported_struct.generics.clone());
     state.types.push_str(&format!(
         "{export}type {interface_name}{generics} =",
         interface_name = exported_struct.ident,
-        generics = utils::extract_struct_generics(exported_struct.generics.clone())
+        generics = utils::format_generics(&generics)
     ));
 
+    // a list of the generics for each variant, so we don't need to recalculate them
+    let mut variant_generics_list = Vec::new();
+
     for variant in exported_struct.variants.iter() {
+        let variant_field_types = variant.fields.iter().map(|f| f.ty.to_owned());
+        let variant_generics = generics
+            .iter()
+            .filter(|gen| {
+                variant_field_types
+                    .clone()
+                    .any(|ty| utils::type_contains_ident(&ty, gen))
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        variant_generics_list.push(variant_generics.clone());
+
         // Assumes that non-newtype tuple variants have already been filtered out
         if variant.fields.iter().any(|v| v.ident.is_none()) && content_name.is_none() {
             // TODO: Generate newtype structure
@@ -218,16 +234,23 @@ fn add_internally_tagged_enum(
         } else {
             state.types.push('\n');
             state.types.push_str(&format!(
-                "  | {interface_name}__{variant_name}",
+                "  | {interface_name}__{variant_name}{generics}",
                 interface_name = exported_struct.ident,
                 variant_name = variant.ident,
+                generics = utils::format_generics(&variant_generics)
             ))
         }
     }
 
     state.types.push_str(";\n");
 
-    for variant in exported_struct.variants {
+    for (variant, generics) in exported_struct
+        .variants
+        .into_iter()
+        .zip(variant_generics_list)
+    {
+        let generics = utils::format_generics(&generics);
+
         match (&variant.fields, content_name.as_ref()) {
             // adjacently tagged
             (syn::Fields::Unnamed(fields), Some(content_name)) => {
@@ -235,7 +258,7 @@ fn add_internally_tagged_enum(
                 let comments = utils::get_comments(variant.attrs);
                 state.write_comments(&comments, 0);
                 state.types.push_str(&format!(
-                    "type {interface_name}__{variant_name} = ",
+                    "type {interface_name}__{variant_name}{generics} = ",
                     interface_name = exported_struct.ident,
                     variant_name = variant.ident,
                 ));
@@ -264,7 +287,7 @@ fn add_internally_tagged_enum(
                 let comments = utils::get_comments(variant.attrs);
                 state.write_comments(&comments, 0);
                 state.types.push_str(&format!(
-                    "type {interface_name}__{variant_name} = ",
+                    "type {interface_name}__{variant_name}{generics} = ",
                     interface_name = exported_struct.ident,
                     variant_name = variant.ident,
                 ));
@@ -297,10 +320,11 @@ fn add_externally_tagged_enum(
     uses_type_interface: bool,
 ) {
     let export = if uses_type_interface { "" } else { "export " };
+    let generics = utils::extract_struct_generics(exported_struct.generics.clone());
     state.types.push_str(&format!(
         "{export}type {interface_name}{generics} =",
         interface_name = exported_struct.ident,
-        generics = utils::extract_struct_generics(exported_struct.generics.clone())
+        generics = utils::format_generics(&generics)
     ));
 
     for variant in exported_struct.variants {

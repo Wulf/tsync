@@ -59,7 +59,7 @@ impl super::ToTypescript for syn::ItemStruct {
             process_tuple_fields(unnamed, state);
         } else {
             state.types.push_str("{\n");
-            process_fields(self.fields, state, 2, casing);
+            process_fields(self.fields, state, 2, casing, true);
             state.types.push('}');
         }
 
@@ -67,14 +67,28 @@ impl super::ToTypescript for syn::ItemStruct {
     }
 }
 
+static EMPTY_OBJECT_TYPE: &'static str = "[key: PropertyKey]: never;\n";
+
+/// # arguments
+///
+/// - `use_empty_object_type` - if true, will use the empty object type as the type of the struct if it has no fields
 pub fn process_fields(
     fields: syn::Fields,
     state: &mut BuildState,
     indentation_amount: i8,
     case: impl Into<Option<Case>>,
+    use_empty_object_type: bool,
 ) {
     let space = utils::build_indentation(indentation_amount);
     let case = case.into();
+
+    // handle empty objects
+    if fields.is_empty() && use_empty_object_type {
+        state.types.push_str(&space);
+        state.types.push_str(EMPTY_OBJECT_TYPE);
+        return;
+    }
+
     for field in fields {
         debug_assert!(
             field.ident.is_some(),

@@ -79,7 +79,9 @@ export type ExternalTopping =
    * Not vegetarian
    */
   | {
-      "Pepperoni": {}
+      "Pepperoni": {
+        [key: PropertyKey]: never;
+      }
     }
   /** For cheese lovers */
   | {

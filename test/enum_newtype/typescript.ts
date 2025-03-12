@@ -49,4 +49,5 @@ export interface VideoCaptureConfiguration {
 }
 
 export interface RedirectCaptureConfiguration {
+  [key: PropertyKey]: never;
 }

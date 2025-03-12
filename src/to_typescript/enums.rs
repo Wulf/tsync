@@ -337,7 +337,7 @@ fn add_internally_tagged_enum(
                     tag_name,
                     field_name,
                 ));
-                super::structs::process_fields(variant.fields, state, 2, casing);
+                super::structs::process_fields(variant.fields, state, 2, casing, false);
                 state.types.push_str("};");
             }
         }
@@ -385,13 +385,11 @@ fn add_externally_tagged_enum(
                 field_name,
             ));
             let prepend;
-            if variant.fields.is_empty() {
-                prepend = "".into();
-            } else {
-                prepend = utils::build_indentation(6);
-                state.types.push('\n');
-                super::structs::process_fields(variant.fields, state, 8, casing);
-            }
+
+            prepend = utils::build_indentation(6);
+            state.types.push('\n');
+            super::structs::process_fields(variant.fields, state, 8, casing, true);
+
             state
                 .types
                 .push_str(&format!("{}}}\n{}}}", prepend, utils::build_indentation(4)));

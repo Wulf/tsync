@@ -49,4 +49,5 @@ interface VideoCaptureConfiguration {
 }
 
 interface RedirectCaptureConfiguration {
+  [key: PropertyKey]: never;
 }

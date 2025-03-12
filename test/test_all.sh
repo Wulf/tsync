@@ -10,6 +10,7 @@ cd $SCRIPT_DIR
 ./const/tsync.sh
 ./const_enum_numeric/tsync.sh
 ./enum/tsync.sh
+./enum_newtype/tsync.sh
 ./enum_numeric/tsync.sh
 ./doc_comments/tsync.sh
 ./generic/tsync.sh

@@ -34,10 +34,13 @@ type AdjacentEnum__Waz<U> = {
 };
 
 type InternalEnum<T, U> =
-  | InternalEnum__Bar<T>;
+  | InternalEnum__Bar<T>
+  | InternalEnum__Waz<U>;
 
 type InternalEnum__Bar<T> = {
   type: "Bar";
   value: T;
   alias: string;
 };
+type InternalEnum__Waz<U> = {
+  type: "Waz"} & U

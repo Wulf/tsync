@@ -17,8 +17,7 @@ enum InternalTopping {
     ExtraCheese { kind: String },
     /// Custom toppings
     /// May expire soon
-    /// Note: this test case will not be included in the generated typescript,
-    /// because it is a tuple variant
+    /// Note: because this is a newtype variant, it should be included in the typescript
     Custom(CustomTopping),
     /// two custom toppings
     /// Note: this test case will not be included in the generated typescript,

@@ -3,12 +3,16 @@
 /** enum comment */
 export type EnumTest =
   | EnumTest__One
+  | EnumTest__Two
   | EnumTest__Three;
 
 /** enum property comment */
 type EnumTest__One = {
   type: "ONE";
 };
+/** enum tuple comment */
+type EnumTest__Two = {
+  type: "TWO"} & StructTest
 /** enum struct comment */
 type EnumTest__Three = {
   type: "THREE";

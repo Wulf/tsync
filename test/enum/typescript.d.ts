@@ -6,7 +6,8 @@
  */
 type InternalTopping =
   | InternalTopping__Pepperoni
-  | InternalTopping__ExtraCheese;
+  | InternalTopping__ExtraCheese
+  | InternalTopping__Custom;
 
 /**
  * Tasty!
@@ -20,6 +21,13 @@ type InternalTopping__ExtraCheese = {
   type: "EXTRA CHEESE";
   KIND: string;
 };
+/**
+ * Custom toppings
+ * May expire soon
+ * Note: because this is a newtype variant, it should be included in the typescript
+ */
+type InternalTopping__Custom = {
+  type: "CUSTOM"} & CustomTopping
 
 /**
  * Adjacently tagged enums have a key-value pair

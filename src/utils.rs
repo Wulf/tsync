@@ -188,23 +188,54 @@ pub fn build_indentation(indentation_amount: i8) -> String {
     (0..indentation_amount).map(|_| '\u{0020}').collect()
 }
 
-pub fn extract_struct_generics(s: syn::Generics) -> String {
-    let out: Vec<String> = s
-        .params
+pub fn extract_struct_generics(s: syn::Generics) -> Vec<syn::Ident> {
+    s.params
         .into_iter()
         .filter_map(|gp| {
             if let syn::GenericParam::Type(ty) = gp {
-                Some(ty)
+                Some(ty.ident)
             } else {
                 None
             }
         })
-        .map(|ty| ty.ident.to_string())
-        .collect();
+        .collect()
+}
 
-    out.is_empty()
-        .then(Default::default)
-        .unwrap_or(format!("<{}>", out.join(", ")))
+pub fn format_generics(generics: &[syn::Ident]) -> String {
+    if generics.is_empty() {
+        return String::new();
+    }
+
+    let generics = generics
+        .iter()
+        .map(|g| g.to_string())
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("<{}>", generics)
+}
+
+/// Determine whether a type contains the given ident.
+pub fn type_contains_ident(ty: &syn::Type, ident: &syn::Ident) -> bool {
+    match ty {
+        syn::Type::Path(ty_path) => ty_path.path.segments.iter().any(|segment| {
+            (match segment.arguments {
+                syn::PathArguments::AngleBracketed(ref angle_bracketed) => {
+                    angle_bracketed.args.iter().any(|arg| {
+                        if let syn::GenericArgument::Type(ref ty) = arg {
+                            type_contains_ident(ty, ident)
+                        } else {
+                            false
+                        }
+                    })
+                }
+                _ => false,
+            }) || &segment.ident == ident
+        }),
+        syn::Type::Slice(ty_slice) => type_contains_ident(&ty_slice.elem, ident),
+        syn::Type::Array(ty_array) => type_contains_ident(&ty_array.elem, ident),
+        syn::Type::Reference(ty_ref) => type_contains_ident(&ty_ref.elem, ident),
+        _ => false,
+    }
 }
 
 /// Get the attribute matching needle name.

@@ -4,7 +4,11 @@ use convert_case::{Case, Casing};
 
 impl super::ToTypescript for syn::ItemStruct {
     fn convert_to_ts(self, state: &mut BuildState, config: &crate::BuildSettings) {
-        let export = if config.uses_type_interface { "" } else { "export " };
+        let export = if config.uses_type_interface {
+            ""
+        } else {
+            "export "
+        };
         let casing = utils::get_attribute_arg("serde", "rename_all", &self.attrs);
         let casing = utils::parse_serde_case(casing);
         state.types.push('\n');
@@ -14,40 +18,83 @@ impl super::ToTypescript for syn::ItemStruct {
 
         let intersections = get_intersections(&self.fields);
 
-        match intersections {
-            Some(intersections) => {
+        let generics = utils::extract_struct_generics(self.generics.clone());
+        let generics = utils::format_generics(&generics);
+
+        match (
+            intersections,
+            matches!(self.fields, syn::Fields::Unnamed(_)),
+        ) {
+            (Some(intersections), false) => {
                 state.types.push_str(&format!(
-                    "{export}type {struct_name}{generics} = {intersections} & {{\n",
-                    export = export,
+                    "{export}type {struct_name}{generics} = {intersections} & ",
                     struct_name = self.ident,
-                    generics = utils::extract_struct_generics(self.generics.clone()),
                     intersections = intersections
                 ));
             }
-            None => {
+            (None, false) => {
                 state.types.push_str(&format!(
-                    "{export}interface {interface_name}{generics} {{\n",
+                    "{export}interface {interface_name}{generics} ",
                     interface_name = self.ident,
-                    generics = utils::extract_struct_generics(self.generics.clone())
                 ));
+            }
+            (None, true) => {
+                state.types.push_str(&format!(
+                    "{export}type {struct_name}{generics} = ",
+                    struct_name = self.ident,
+                ));
+            }
+            (Some(_), true) => {
+                if crate::DEBUG.try_get().is_some_and(|d| *d) {
+                    println!(
+                        "#[tsync] failed for struct {}. cannot flatten fields of tuple struct",
+                        self.ident
+                    );
+                }
+                return;
             }
         }
 
-        process_fields(self.fields, state, 2, casing);
-        state.types.push('}');
+        if let syn::Fields::Unnamed(unnamed) = self.fields {
+            process_tuple_fields(unnamed, state);
+        } else {
+            state.types.push_str("{\n");
+            process_fields(self.fields, state, 2, casing, true);
+            state.types.push('}');
+        }
+
         state.types.push('\n');
     }
 }
 
+static EMPTY_OBJECT_TYPE: &'static str = "[key: PropertyKey]: never;\n";
+
+/// # arguments
+///
+/// - `use_empty_object_type` - if true, will use the empty object type as the type of the struct if it has no fields
 pub fn process_fields(
     fields: syn::Fields,
     state: &mut BuildState,
     indentation_amount: i8,
     case: impl Into<Option<Case>>,
+    use_empty_object_type: bool,
 ) {
     let space = utils::build_indentation(indentation_amount);
     let case = case.into();
+
+    // handle empty objects
+    if fields.is_empty() && use_empty_object_type {
+        state.types.push_str(&space);
+        state.types.push_str(EMPTY_OBJECT_TYPE);
+        return;
+    }
+
     for field in fields {
+        debug_assert!(
+            field.ident.is_some(),
+            "struct fields should have names, found unnamed field"
+        );
+
         // Check if the field has the serde flatten attribute, if so, skip it
         let has_flatten_attr = utils::get_attribute_arg("serde", "flatten", &field.attrs).is_some();
         if has_flatten_attr {
@@ -74,6 +121,38 @@ pub fn process_fields(
             optional_parameter_token = if field_type.is_optional { "?" } else { "" },
             field_type = field_type.ts_type
         ));
+    }
+}
+
+/// Process tuple fields
+///
+/// NOTE: Currently, this function does not handle comments or attributes on tuple fields.
+///
+/// # Example
+///
+/// ```ignore
+/// struct Todo(String, u32);
+/// ```
+///
+/// should become
+///
+/// ```ignore
+/// type Todo = [string, number];
+/// ```
+pub fn process_tuple_fields(fields: syn::FieldsUnnamed, state: &mut BuildState) {
+    let out = fields
+        .unnamed
+        .into_iter()
+        .map(|field| {
+            let field_type = convert_type(&field.ty);
+            field_type.ts_type
+        })
+        .collect::<Vec<String>>();
+
+    if out.len() == 1 {
+        state.types.push_str(&out[0].to_string());
+    } else if !out.is_empty() {
+        state.types.push_str(&format!("[ {} ]", out.join(", ")));
     }
 }
 

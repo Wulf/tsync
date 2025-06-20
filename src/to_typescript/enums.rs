@@ -1,5 +1,4 @@
-use crate::typescript::convert_type;
-use crate::{utils, BuildState};
+use crate::{typescript::convert_type, utils, BuildState};
 use convert_case::{Case, Casing};
 use syn::__private::ToTokens;
 
@@ -9,26 +8,6 @@ use syn::__private::ToTokens;
 /// `rename_all` attributes for the name of the tag will also be adhered to.
 impl super::ToTypescript for syn::ItemEnum {
     fn convert_to_ts(self, state: &mut BuildState, config: &crate::BuildSettings) {
-        // check we don't have any tuple structs that could mess things up.
-        // if we do ignore this struct
-        for variant in self.variants.iter() {
-            // allow single-field tuple structs to pass through as newtype structs
-            let mut is_newtype = false;
-            for f in variant.fields.iter() {
-                if f.ident.is_none() {
-                    // If we already marked this variant as a newtype, we have a multi-field tuple struct
-                    if is_newtype {
-                        if crate::DEBUG.try_get().is_some_and(|d| *d) {
-                            println!("#[tsync] failed for enum {}", self.ident);
-                        }
-                        return;
-                    } else {
-                        is_newtype = true;
-                    }
-                }
-            }
-        }
-
         state.types.push('\n');
 
         let comments = utils::get_comments(self.clone().attrs);
@@ -42,7 +21,15 @@ impl super::ToTypescript for syn::ItemEnum {
 
         // always use output the internally_tagged representation if the tag is present
         if let Some(tag_name) = utils::get_attribute_arg("serde", "tag", &self.attrs) {
-            add_internally_tagged_enum(tag_name, self, state, casing, config.uses_type_interface)
+            let content_name = utils::get_attribute_arg("serde", "content", &self.attrs);
+            add_internally_tagged_enum(
+                tag_name,
+                content_name,
+                self,
+                state,
+                casing,
+                config.uses_type_interface,
+            )
         } else if is_single {
             if utils::has_attribute_arg("derive", "Serialize_repr", &self.attrs) {
                 add_numeric_enum(self, state, casing, config)
@@ -208,63 +195,151 @@ fn add_numeric_enum(
 /// ```
 fn add_internally_tagged_enum(
     tag_name: String,
+    content_name: Option<String>,
     exported_struct: syn::ItemEnum,
     state: &mut BuildState,
     casing: Option<Case>,
     uses_type_interface: bool,
 ) {
     let export = if uses_type_interface { "" } else { "export " };
+    let generics = utils::extract_struct_generics(exported_struct.generics.clone());
     state.types.push_str(&format!(
         "{export}type {interface_name}{generics} =",
         interface_name = exported_struct.ident,
-        generics = utils::extract_struct_generics(exported_struct.generics.clone())
+        generics = utils::format_generics(&generics)
     ));
 
+    // a list of the generics for each variant, so we don't need to recalculate them
+    let mut variant_generics_list = Vec::new();
+
     for variant in exported_struct.variants.iter() {
+        let variant_field_types = variant.fields.iter().map(|f| f.ty.to_owned());
+        let variant_generics = generics
+            .iter()
+            .filter(|gen| {
+                variant_field_types
+                    .clone()
+                    .any(|ty| utils::type_contains_ident(&ty, gen))
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+
         // Assumes that non-newtype tuple variants have already been filtered out
-        if variant.fields.iter().any(|v| v.ident.is_none()) {
-            // TODO: Generate newtype structure
-            // This should contain the discriminant plus all fields of the inner structure as a flat structure
-            // TODO: Check for case where discriminant name matches an inner structure field name
-            // We should reject clashes
-        } else {
-            state.types.push('\n');
-            state.types.push_str(&format!(
-                "  | {interface_name}__{variant_name}",
-                interface_name = exported_struct.ident,
-                variant_name = variant.ident,
-            ))
+        // TODO: Check for case where discriminant name matches an inner structure field name
+        // We should reject clashes
+        match &variant.fields {
+            syn::Fields::Unnamed(fields) if fields.unnamed.len() > 1 && content_name.is_none() => {
+                continue;
+            }
+            _ => {
+                variant_generics_list.push(variant_generics.clone());
+                state.types.push('\n');
+                state.types.push_str(&format!(
+                    "  | {interface_name}__{variant_name}{generics}",
+                    interface_name = exported_struct.ident,
+                    variant_name = variant.ident,
+                    generics = utils::format_generics(&variant_generics)
+                ))
+            }
         }
     }
 
     state.types.push_str(";\n");
 
-    for variant in exported_struct.variants {
-        // Assumes that non-newtype tuple variants have already been filtered out
-        if !variant.fields.iter().any(|v| v.ident.is_none()) {
-            state.types.push('\n');
-            let comments = utils::get_comments(variant.attrs);
-            state.write_comments(&comments, 0);
-            state.types.push_str(&format!(
-                "type {interface_name}__{variant_name} = ",
-                interface_name = exported_struct.ident,
-                variant_name = variant.ident,
-            ));
+    for (variant, generics) in exported_struct
+        .variants
+        .into_iter()
+        .zip(variant_generics_list)
+    {
+        let generics = utils::format_generics(&generics);
 
-            let field_name = if let Some(casing) = casing {
-                variant.ident.to_string().to_case(casing)
-            } else {
-                variant.ident.to_string()
-            };
-            // add discriminant
-            state.types.push_str(&format!(
-                "{{\n{}{}: \"{}\";\n",
-                utils::build_indentation(2),
-                tag_name,
-                field_name,
-            ));
-            super::structs::process_fields(variant.fields, state, 2, casing);
-            state.types.push_str("};");
+        match (&variant.fields, content_name.as_ref()) {
+            // adjacently tagged
+            (syn::Fields::Unnamed(fields), Some(content_name)) => {
+                state.types.push('\n');
+                let comments = utils::get_comments(variant.attrs);
+                state.write_comments(&comments, 0);
+                state.types.push_str(&format!(
+                    "type {interface_name}__{variant_name}{generics} = ",
+                    interface_name = exported_struct.ident,
+                    variant_name = variant.ident,
+                ));
+                // add discriminant
+                state.types.push_str(&format!(
+                    "{{\n{indent}\"{tag_name}\": \"{}\";\n{indent}\"{content_name}\": ",
+                    variant.ident,
+                    indent = utils::build_indentation(2),
+                ));
+                super::structs::process_tuple_fields(fields.clone(), state);
+                state.types.push_str(";\n};");
+            }
+            // missing content name, but is a newtype variant
+            (syn::Fields::Unnamed(fields), None) if fields.unnamed.len() <= 1 => {
+                state.types.push('\n');
+                let comments = utils::get_comments(variant.attrs);
+                state.write_comments(&comments, 0);
+                state.types.push_str(&format!(
+                    "type {interface_name}__{variant_name}{generics} = ",
+                    interface_name = exported_struct.ident,
+                    variant_name = variant.ident,
+                ));
+
+                let field_name = if let Some(casing) = casing {
+                    variant.ident.to_string().to_case(casing)
+                } else {
+                    variant.ident.to_string()
+                };
+                // add discriminant
+                state.types.push_str(&format!(
+                    "{{\n{}{}: \"{}\"}}",
+                    utils::build_indentation(2),
+                    tag_name,
+                    field_name,
+                ));
+
+                // add the newtype field
+                let newtype = convert_type(&fields.unnamed.first().unwrap().ty);
+                state.types.push_str(&format!(
+                    " & {content_name}",
+                    content_name = newtype.ts_type
+                ));
+            }
+            // missing content name, and is not a newtype, this is an error case
+            (syn::Fields::Unnamed(_), None) => {
+                if crate::DEBUG.try_get().is_some_and(|d: &bool| *d) {
+                    println!(
+                        "#[tsync] failed for {} variant of enum {}, missing content attribute, skipping",
+                        variant.ident,
+                        exported_struct.ident
+                    );
+                }
+                continue;
+            }
+            _ => {
+                state.types.push('\n');
+                let comments = utils::get_comments(variant.attrs);
+                state.write_comments(&comments, 0);
+                state.types.push_str(&format!(
+                    "type {interface_name}__{variant_name}{generics} = ",
+                    interface_name = exported_struct.ident,
+                    variant_name = variant.ident,
+                ));
+
+                let field_name = if let Some(casing) = casing {
+                    variant.ident.to_string().to_case(casing)
+                } else {
+                    variant.ident.to_string()
+                };
+                // add discriminant
+                state.types.push_str(&format!(
+                    "{{\n{}{}: \"{}\";\n",
+                    utils::build_indentation(2),
+                    tag_name,
+                    field_name,
+                ));
+                super::structs::process_fields(variant.fields, state, 2, casing, false);
+                state.types.push_str("};");
+            }
         }
     }
     state.types.push('\n');
@@ -278,10 +353,11 @@ fn add_externally_tagged_enum(
     uses_type_interface: bool,
 ) {
     let export = if uses_type_interface { "" } else { "export " };
+    let generics = utils::extract_struct_generics(exported_struct.generics.clone());
     state.types.push_str(&format!(
         "{export}type {interface_name}{generics} =",
         interface_name = exported_struct.ident,
-        generics = utils::extract_struct_generics(exported_struct.generics.clone())
+        generics = utils::format_generics(&generics)
     ));
 
     for variant in exported_struct.variants {
@@ -293,17 +369,13 @@ fn add_externally_tagged_enum(
         } else {
             variant.ident.to_string()
         };
-        // Assumes that non-newtype tuple variants have already been filtered out
-        let is_newtype = variant.fields.iter().any(|v| v.ident.is_none());
 
-        if is_newtype {
+        if let syn::Fields::Unnamed(fields) = &variant.fields {
             // add discriminant
-            state.types.push_str(&format!("  | {{ \"{}\":", field_name));
-            for field in variant.fields {
-                state
-                    .types
-                    .push_str(&format!(" {}", convert_type(&field.ty).ts_type,));
-            }
+            state
+                .types
+                .push_str(&format!("  | {{ \"{}\": ", field_name));
+            super::structs::process_tuple_fields(fields.clone(), state);
             state.types.push_str(" }");
         } else {
             // add discriminant
@@ -313,13 +385,11 @@ fn add_externally_tagged_enum(
                 field_name,
             ));
             let prepend;
-            if variant.fields.is_empty() {
-                prepend = "".into();
-            } else {
-                prepend = utils::build_indentation(6);
-                state.types.push('\n');
-                super::structs::process_fields(variant.fields, state, 8, casing);
-            }
+
+            prepend = utils::build_indentation(6);
+            state.types.push('\n');
+            super::structs::process_fields(variant.fields, state, 8, casing, true);
+
             state
                 .types
                 .push_str(&format!("{}}}\n{}}}", prepend, utils::build_indentation(4)));

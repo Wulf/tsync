@@ -27,20 +27,19 @@ jobs:
     name: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3.3.0
+      - uses: actions/checkout@v4
       - uses: rui314/setup-mold@v1
-      - uses: actions-rs/toolchain@v1.0.7
+      - name: Install Rust toolchain
+        run: |
+          rustup show
+          rustup -V
+          rustup set profile minimal
+          rustup toolchain install stable
+          rustup override set stable
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v2
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions/cache@v3.2.4
-        with:
-          path: |
-            ./.cargo/.build
-            ./target
-            ~/.cargo
-          key: ${{ runner.os }}-cargo-dev-${{ hashFiles('**/Cargo.lock') }}
+          shared-key: ${{ runner.os }}-cargo-dev-${{ hashFiles('**/Cargo.lock') }}
       - run: cargo check --all-targets --all-features
 
   test:
@@ -48,19 +47,18 @@ jobs:
     needs: [build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3.3.0
+      - uses: actions/checkout@v4
       - uses: rui314/setup-mold@v1
-      - uses: actions-rs/toolchain@v1.0.7
+      - name: Install Rust toolchain
+        run: |
+          rustup show
+          rustup -V
+          rustup set profile minimal
+          rustup toolchain install stable
+          rustup override set stable
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v2
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions/cache@v3.2.4
-        with:
-          path: |
-            ./.cargo/.build
-            ./target
-            ~/.cargo
-          key: ${{ runner.os }}-cargo-dev-${{ hashFiles('**/Cargo.lock') }}
+          shared-key: ${{ runner.os }}-cargo-dev-${{ hashFiles('**/Cargo.lock') }}
       - run: bash test/test_all.sh
       - run: git diff --exit-code --quiet || exit 1

@@ -17,7 +17,31 @@ enum InternalTopping {
     ExtraCheese { kind: String },
     /// Custom toppings
     /// May expire soon
+    /// Note: because this is a newtype variant, it should be included in the typescript
     Custom(CustomTopping),
+    /// two custom toppings
+    /// Note: this test case will not be included in the generated typescript,
+    /// because it is a tuple variant
+    CustomTwo(CustomTopping, CustomTopping),
+}
+
+/// Adjacently tagged enums have a key-value pair
+/// that discrimate which variant it belongs to, and
+/// can support tuple variants
+#[tsync]
+#[serde(tag = "type", content = "value")]
+enum AdjacentTopping {
+    /// Tasty!
+    /// Not vegetarian
+    Pepperoni,
+    /// For cheese lovers
+    ExtraCheese { kind: String },
+    /// Custom toppings
+    /// May expire soon
+    Custom(CustomTopping),
+    /// two custom toppings
+    /// Note: this test case is specifically for specifying a tuple of types
+    CustomTwo(CustomTopping, CustomTopping),
 }
 
 /// Externally tagged enums ascribe the value to a key
@@ -33,6 +57,9 @@ enum ExternalTopping {
     /// May expire soon
     /// Note: this test case is specifically for specifying a single type in the tuple
     Custom(CustomTopping),
+    /// two custom toppings
+    /// Note: this test case is specifically for specifying a tuple of types
+    CustomTwo(CustomTopping, CustomTopping),
 }
 
 #[tsync]
@@ -69,5 +96,5 @@ enum AnimalTwo {
 #[tsync]
 #[serde(tag = "type")]
 enum Tagged {
-    Test // this should be { type: "Test" } in the TypeScript (not just the string "Test")
+    Test, // this should be { type: "Test" } in the TypeScript (not just the string "Test")
 }

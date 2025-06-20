@@ -6,7 +6,8 @@
  */
 export type InternalTopping =
   | InternalTopping__Pepperoni
-  | InternalTopping__ExtraCheese;
+  | InternalTopping__ExtraCheese
+  | InternalTopping__Custom;
 
 /**
  * Tasty!
@@ -20,6 +21,53 @@ type InternalTopping__ExtraCheese = {
   type: "EXTRA CHEESE";
   KIND: string;
 };
+/**
+ * Custom toppings
+ * May expire soon
+ * Note: because this is a newtype variant, it should be included in the typescript
+ */
+type InternalTopping__Custom = {
+  type: "CUSTOM"} & CustomTopping
+
+/**
+ * Adjacently tagged enums have a key-value pair
+ * that discrimate which variant it belongs to, and
+ * can support tuple variants
+ */
+export type AdjacentTopping =
+  | AdjacentTopping__Pepperoni
+  | AdjacentTopping__ExtraCheese
+  | AdjacentTopping__Custom
+  | AdjacentTopping__CustomTwo;
+
+/**
+ * Tasty!
+ * Not vegetarian
+ */
+type AdjacentTopping__Pepperoni = {
+  type: "Pepperoni";
+};
+/** For cheese lovers */
+type AdjacentTopping__ExtraCheese = {
+  type: "ExtraCheese";
+  kind: string;
+};
+/**
+ * Custom toppings
+ * May expire soon
+ */
+type AdjacentTopping__Custom = {
+  "type": "Custom";
+  "value": CustomTopping;
+};
+/**
+ * two custom toppings
+ * Note: this test case is specifically for specifying a tuple of types
+ */
+type AdjacentTopping__CustomTwo = {
+  "type": "CustomTwo";
+  "value": [ CustomTopping, CustomTopping ];
+};
 
 /**
  * Externally tagged enums ascribe the value to a key
@@ -31,7 +79,9 @@ export type ExternalTopping =
    * Not vegetarian
    */
   | {
-      "Pepperoni": {}
+      "Pepperoni": {
+        [key: PropertyKey]: never;
+      }
     }
   /** For cheese lovers */
   | {
@@ -44,7 +94,12 @@ export type ExternalTopping =
    * May expire soon
    * Note: this test case is specifically for specifying a single type in the tuple
    */
-  | { "Custom": CustomTopping };
+  | { "Custom": CustomTopping }
+  /**
+   * two custom toppings
+   * Note: this test case is specifically for specifying a tuple of types
+   */
+  | { "CustomTwo": [ CustomTopping, CustomTopping ] };
 
 export interface CustomTopping {
   name: string;

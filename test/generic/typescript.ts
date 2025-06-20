@@ -10,3 +10,37 @@ export interface Paginated<T> {
   page: number;
   total_pages: number;
 }
+
+export type Flatten<T> = Array<T> & {
+  name: string;
+}
+
+/** \n * Test enum represenations w/ generics\n */
+export type ExternalEnum<T, U> =
+  | { "Bar": T }
+  | { "Waz": U };
+
+export type AdjacentEnum<T, U> =
+  | AdjacentEnum__Bar<T>
+  | AdjacentEnum__Waz<U>;
+
+type AdjacentEnum__Bar<T> = {
+  "type": "Bar";
+  "value": T;
+};
+type AdjacentEnum__Waz<U> = {
+  "type": "Waz";
+  "value": U;
+};
+
+export type InternalEnum<T, U> =
+  | InternalEnum__Bar<T>
+  | InternalEnum__Waz<U>;
+
+type InternalEnum__Bar<T> = {
+  type: "Bar";
+  value: T;
+  alias: string;
+};
+type InternalEnum__Waz<U> = {
+  type: "Waz"} & U

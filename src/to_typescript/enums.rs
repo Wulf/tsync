@@ -1,6 +1,7 @@
 use crate::{typescript::convert_type, utils, BuildState};
 use convert_case::{Case, Casing};
 use syn::__private::ToTokens;
+use syn::ext::IdentExt;
 
 /// Conversion of Rust Enum to Typescript using external tagging as per https://serde.rs/enum-representations.html
 /// however conversion will adhere to the `serde` `tag` such that enums are intenrally tagged
@@ -59,9 +60,9 @@ fn add_enum(
 
     for variant in exported_struct.variants {
         let field_name = if let Some(casing) = casing {
-            variant.ident.to_string().to_case(casing)
+            variant.ident.unraw().to_string().to_case(casing)
         } else {
-            variant.ident.to_string()
+            variant.ident.unraw().to_string()
         };
         state.types.push_str(&format!(" | \"{}\"", field_name));
     }
@@ -141,9 +142,9 @@ fn add_numeric_enum(
     for variant in exported_struct.variants {
         state.types.push('\n');
         let field_name = if let Some(casing) = casing {
-            variant.ident.to_string().to_case(casing)
+            variant.ident.unraw().to_string().to_case(casing)
         } else {
-            variant.ident.to_string()
+            variant.ident.unraw().to_string()
         };
         if let Some((_, disc)) = variant.discriminant {
             if let Ok(new_disc) = disc.to_token_stream().to_string().parse::<i32>() {
@@ -237,7 +238,7 @@ fn add_internally_tagged_enum(
                 state.types.push_str(&format!(
                     "  | {interface_name}__{variant_name}{generics}",
                     interface_name = exported_struct.ident,
-                    variant_name = variant.ident,
+                    variant_name = variant.ident.unraw(),
                     generics = utils::format_generics(&variant_generics)
                 ))
             }
@@ -262,7 +263,7 @@ fn add_internally_tagged_enum(
                 state.types.push_str(&format!(
                     "type {interface_name}__{variant_name}{generics} = ",
                     interface_name = exported_struct.ident,
-                    variant_name = variant.ident,
+                    variant_name = variant.ident.unraw(),
                 ));
                 // add discriminant
                 state.types.push_str(&format!(
@@ -281,13 +282,13 @@ fn add_internally_tagged_enum(
                 state.types.push_str(&format!(
                     "type {interface_name}__{variant_name}{generics} = ",
                     interface_name = exported_struct.ident,
-                    variant_name = variant.ident,
+                    variant_name = variant.ident.unraw(),
                 ));
 
                 let field_name = if let Some(casing) = casing {
-                    variant.ident.to_string().to_case(casing)
+                    variant.ident.unraw().to_string().to_case(casing)
                 } else {
-                    variant.ident.to_string()
+                    variant.ident.unraw().to_string()
                 };
                 // add discriminant
                 state.types.push_str(&format!(
@@ -322,13 +323,13 @@ fn add_internally_tagged_enum(
                 state.types.push_str(&format!(
                     "type {interface_name}__{variant_name}{generics} = ",
                     interface_name = exported_struct.ident,
-                    variant_name = variant.ident,
+                    variant_name = variant.ident.unraw(),
                 ));
 
                 let field_name = if let Some(casing) = casing {
-                    variant.ident.to_string().to_case(casing)
+                    variant.ident.unraw().to_string().to_case(casing)
                 } else {
-                    variant.ident.to_string()
+                    variant.ident.unraw().to_string()
                 };
                 // add discriminant
                 state.types.push_str(&format!(
@@ -365,9 +366,9 @@ fn add_externally_tagged_enum(
         let comments = utils::get_comments(variant.attrs);
         state.write_comments(&comments, 2);
         let field_name = if let Some(casing) = casing {
-            variant.ident.to_string().to_case(casing)
+            variant.ident.unraw().to_string().to_case(casing)
         } else {
-            variant.ident.to_string()
+            variant.ident.unraw().to_string()
         };
 
         if let syn::Fields::Unnamed(fields) = &variant.fields {

@@ -1,4 +1,5 @@
 use syn::__private::ToTokens;
+use syn::ext::IdentExt;
 
 use crate::{utils, BuildState};
 
@@ -16,7 +17,7 @@ impl super::ToTypescript for syn::ItemConst {
         // however doesn't enforce that the json! macro contains no variables.
         // if your lucky you might have also tsynced them but otherwise you will get a typescript error.
 
-        let name = self.ident.to_string();
+        let name = self.ident.unraw().to_string();
         let body = match self.expr.as_ref() {
             syn::Expr::Lit(literal) => {
                 // convert it directly to a string to put in TS.

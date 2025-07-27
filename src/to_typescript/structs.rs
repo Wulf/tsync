@@ -1,6 +1,7 @@
 use crate::typescript::convert_type;
 use crate::{utils, BuildState};
 use convert_case::{Case, Casing};
+use syn::ext::IdentExt;
 
 impl super::ToTypescript for syn::ItemStruct {
     fn convert_to_ts(self, state: &mut BuildState, config: &crate::BuildSettings) {
@@ -107,10 +108,10 @@ pub fn process_fields(
         let field_name = if let Some(name_case) = case {
             field
                 .ident
-                .map(|id| id.to_string().to_case(name_case))
+                .map(|id| id.unraw().to_string().to_case(name_case))
                 .unwrap()
         } else {
-            field.ident.map(|i| i.to_string()).unwrap()
+            field.ident.map(|i| i.unraw().to_string()).unwrap()
         };
 
         let field_type = convert_type(&field.ty);

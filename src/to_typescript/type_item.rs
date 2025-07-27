@@ -1,10 +1,11 @@
 use crate::BuildState;
+use syn::ext::IdentExt;
 
 impl super::ToTypescript for syn::ItemType {
     fn convert_to_ts(self, state: &mut BuildState, config: &crate::BuildSettings) {
         let export = if config.uses_type_interface { "" } else { "export " };
         state.types.push('\n');
-        let name = self.ident.to_string();
+        let name = self.ident.unraw().to_string();
         let ty = crate::typescript::convert_type(&self.ty);
         let comments = crate::utils::get_comments(self.attrs);
         state.write_comments(&comments, 0);

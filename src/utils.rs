@@ -271,3 +271,4 @@ pub(crate) fn parse_serde_case(val: impl Into<Option<String>>) -> Option<convert
             .map(|(_, rule)| *rule)
     })
 }
+

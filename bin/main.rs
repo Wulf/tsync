@@ -16,7 +16,11 @@ struct Args {
     debug: bool,
 
     /// Enable const enums
-    #[clap(short, long = "const-enums", help = "Enable generating const enums")]
+    #[clap(
+        short = 'c',
+        long = "const-enums",
+        help = "Enable generating const enums"
+    )]
     enable_const_enums: bool,
 
     // TODO: add "create-module" functionality (so generated types can be under a specified namespace like Rust.MyType)

@@ -3,15 +3,15 @@ use syn::parse::Parser;
 use syn::punctuated::Punctuated;
 use syn::{Expr, ExprPath, MetaNameValue, Token};
 
-pub(crate) static RENAME_RULES: &[(&str, convert_case::Case)] = &[
+pub(crate) static RENAME_RULES: &[(&str, convert_case::Case<'static>)] = &[
     ("lowercase", convert_case::Case::Lower),
     ("UPPERCASE", convert_case::Case::Upper),
     ("PascalCase", convert_case::Case::Pascal),
     ("camelCase", convert_case::Case::Camel),
     ("snake_case", convert_case::Case::Snake),
-    ("SCREAMING_SNAKE_CASE", convert_case::Case::ScreamingSnake),
+    ("SCREAMING_SNAKE_CASE", convert_case::Case::UpperSnake),
     ("kebab-case", convert_case::Case::Kebab),
-    // ("SCREAMING-KEBAB-CASE", _), // not supported by convert_case
+    ("SCREAMING-KEBAB-CASE", convert_case::Case::UpperKebab),
 ];
 
 pub fn has_attribute(needle: &str, attributes: &[syn::Attribute]) -> bool {
@@ -263,7 +263,9 @@ pub fn get_attribute<'a>(
         })
 }
 
-pub(crate) fn parse_serde_case(val: impl Into<Option<String>>) -> Option<convert_case::Case> {
+pub(crate) fn parse_serde_case(
+    val: impl Into<Option<String>>,
+) -> Option<convert_case::Case<'static>> {
     val.into().and_then(|x| {
         RENAME_RULES
             .iter()
@@ -271,4 +273,3 @@ pub(crate) fn parse_serde_case(val: impl Into<Option<String>>) -> Option<convert
             .map(|(_, rule)| *rule)
     })
 }
-

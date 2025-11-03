@@ -20,8 +20,12 @@ impl super::ToTypescript for syn::ItemEnum {
         let is_single = !self.variants.iter().any(|x| !x.fields.is_empty());
         state.write_comments(&comments, 0);
 
+        // Handle untagged enum if serde has the tag untagged
+        if utils::get_attribute_arg("serde", "untagged", &self.attrs).is_some() {
+            add_untagged_tagged_enum(self, state, casing, config.uses_type_interface);
+        }
         // always use output the internally_tagged representation if the tag is present
-        if let Some(tag_name) = utils::get_attribute_arg("serde", "tag", &self.attrs) {
+        else if let Some(tag_name) = utils::get_attribute_arg("serde", "tag", &self.attrs) {
             let content_name = utils::get_attribute_arg("serde", "content", &self.attrs);
             add_internally_tagged_enum(
                 tag_name,
@@ -394,6 +398,61 @@ fn add_externally_tagged_enum(
             state
                 .types
                 .push_str(&format!("{}}}\n{}}}", prepend, utils::build_indentation(4)));
+        }
+    }
+    state.types.push_str(";\n");
+}
+
+fn add_untagged_tagged_enum(
+    exported_struct: syn::ItemEnum,
+    state: &mut BuildState,
+    casing: Option<Case>,
+    uses_type_interface: bool,
+) {
+    let export = if uses_type_interface { "" } else { "export " };
+    let generics = utils::extract_struct_generics(exported_struct.generics.clone());
+
+    // Write type name and generics
+    state.types.push_str(&format!(
+        "{export}type {interface_name}{generics} =",
+        interface_name = exported_struct.ident,
+        generics = utils::format_generics(&generics)
+    ));
+
+    // Loop over each variant of the enum
+    for variant in exported_struct.variants {
+        state.types.push('\n');
+        // Copy comments from rust
+        let comments = utils::get_comments(variant.attrs);
+        state.write_comments(&comments, 2);
+
+        // Unnamed fields:
+        // ```rs
+        // enum Data {
+        //     Value1(i32)
+        // }
+        // ```
+        if let syn::Fields::Unnamed(fields) = &variant.fields {
+            // add discriminant
+            state.types.push_str(&format!("  | "));
+            super::structs::process_tuple_fields(fields.clone(), state);
+            state.types.push_str("");
+        }
+        // Named fields:
+        // ```rs
+        // enum Data {
+        //     Value1 { v: i32 }
+        // }
+        // ```
+        else {
+            // add discriminant
+            state.types.push_str(&format!("  | {{\n"));
+
+            super::structs::process_fields(variant.fields, state, 6, casing, true);
+
+            state
+                .types
+                .push_str(&format!("{}}}", utils::build_indentation(4)));
         }
     }
     state.types.push_str(";\n");

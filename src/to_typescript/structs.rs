@@ -73,11 +73,11 @@ static EMPTY_OBJECT_TYPE: &'static str = "[key: PropertyKey]: never;\n";
 /// # arguments
 ///
 /// - `use_empty_object_type` - if true, will use the empty object type as the type of the struct if it has no fields
-pub fn process_fields(
+pub fn process_fields<'a>(
     fields: syn::Fields,
     state: &mut BuildState,
     indentation_amount: i8,
-    case: impl Into<Option<Case>>,
+    case: impl Into<Option<Case<'a>>>,
     use_empty_object_type: bool,
 ) {
     let space = utils::build_indentation(indentation_amount);

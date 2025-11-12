@@ -77,6 +77,18 @@ fn try_match_with_args(ident: &str, args: &syn::PathArguments) -> Result<TsType,
                 _ => "unknown".to_owned(),
             },
         }),
+        "Box" => Ok(TsType {
+            is_optional: false,
+            ts_type: match &args {
+                syn::PathArguments::Parenthesized(parenthesized_argument) => {
+                    format!("{:?}", parenthesized_argument)
+                }
+                syn::PathArguments::AngleBracketed(angle_bracketed_argument) => {
+                    convert_generic(angle_bracketed_argument.args.first().unwrap()).ts_type
+                }
+                _ => "unknown".to_owned(),
+            },
+        }),
         "Vec" => Ok(match &args {
             syn::PathArguments::Parenthesized(parenthesized_argument) => {
                 format!("{:?}", parenthesized_argument).into()
@@ -196,6 +208,7 @@ pub fn convert_type(ty: &syn::Type) -> TsType {
                 is_optional: false,
             }
         }
+
         _ => "unknown".to_owned().into(),
     }
 }

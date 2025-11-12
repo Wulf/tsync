@@ -17,5 +17,6 @@ cd $SCRIPT_DIR
 ./issue-43/tsync.sh
 ./issue-55/tsync.sh
 ./issue-58/tsync.sh
+./issue-63/tsync.sh
 ./issue-65-untagged-enums/tsync.sh
 ./raw_identifiers/tsync.sh

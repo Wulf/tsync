@@ -203,8 +203,8 @@ fn process_dir_entry<P: AsRef<Path>>(path: P, state: &mut BuildState, config: &B
 pub fn generate_typescript_defs_inner(
     input: Vec<PathBuf>,
     uses_type_interface: bool,
-    enable_const_enums: bool,
     debug: bool,
+    enable_const_enums: bool,
 ) -> BuildState {
     DEBUG.set(debug);
     let config = BuildSettings {
@@ -234,8 +234,8 @@ pub fn generate_typescript_defs_inner(
 pub fn generate_typescript_defs(
     input: Vec<PathBuf>,
     output: PathBuf,
-    enable_const_enums: bool,
     debug: bool,
+    enable_const_enums: bool,
 ) {
     DEBUG.set(debug);
 
@@ -245,7 +245,7 @@ pub fn generate_typescript_defs(
         .unwrap_or(true);
 
     let state =
-        generate_typescript_defs_inner(input, uses_type_interface, enable_const_enums, debug);
+        generate_typescript_defs_inner(input, uses_type_interface, debug, enable_const_enums);
 
     if debug {
         println!("======================================");

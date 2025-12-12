@@ -70,8 +70,8 @@ fn main() {
         let content = tsync::generate_typescript_defs_inner(
             args.input,
             uses_type_interface,
-            args.enable_const_enums,
             args.debug,
+            args.enable_const_enums,
         );
 
         println!("{}", content.types)
@@ -79,8 +79,8 @@ fn main() {
         tsync::generate_typescript_defs(
             args.input,
             args.output,
-            args.enable_const_enums,
             args.debug,
+            args.enable_const_enums,
         );
     }
 }

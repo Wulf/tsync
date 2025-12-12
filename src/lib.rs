@@ -64,19 +64,16 @@ impl BuildState {
         let indentation = utils::build_indentation(indentation_amount);
         match comments.len() {
             0 => (),
-            1 => {
-                self.types
-                    .push_str(&format!("{}/** {} */\n", indentation, &comments[0]))
-            }
+            1 => self
+                .types
+                .push_str(&format!("{}/** {} */\n", indentation, &comments[0])),
             _ => {
-                self.types
-                    .push_str(&format!("{}/**\n", indentation));
+                self.types.push_str(&format!("{}/**\n", indentation));
                 for comment in comments {
                     self.types
                         .push_str(&format!("{} * {}\n", indentation, &comment))
                 }
-                self.types
-                    .push_str(&format!("{} */\n", indentation))
+                self.types.push_str(&format!("{} */\n", indentation))
             }
         }
     }
@@ -118,12 +115,16 @@ fn process_rust_file<P: AsRef<Path>>(
     }
 
     let Ok(src) = std::fs::read_to_string(input_path.as_ref()) else {
-        state.unprocessed_files.push(input_path.as_ref().to_path_buf());
+        state
+            .unprocessed_files
+            .push(input_path.as_ref().to_path_buf());
         return;
     };
 
     let Ok(syntax) = syn::parse_file(&src) else {
-        state.unprocessed_files.push(input_path.as_ref().to_path_buf());
+        state
+            .unprocessed_files
+            .push(input_path.as_ref().to_path_buf());
         return;
     };
 
@@ -135,7 +136,9 @@ fn process_rust_file<P: AsRef<Path>>(
 
 fn check_path<P: AsRef<Path>>(path: P, state: &mut BuildState) -> bool {
     if !path.as_ref().exists() {
-        if *DEBUG.get() { println!("Path `{:#?}` does not exist", path.as_ref()); }
+        if *DEBUG.get() {
+            println!("Path `{:#?}` does not exist", path.as_ref());
+        }
         state.unprocessed_files.push(path.as_ref().to_path_buf());
         return false;
     }
@@ -148,7 +151,7 @@ fn check_extension<P: AsRef<Path>>(ext: &OsStr, path: P) -> bool {
         if *DEBUG.get() {
             println!("Encountered non-rust file `{:#?}`", path.as_ref());
         }
-        return false
+        return false;
     }
 
     true
@@ -170,7 +173,10 @@ fn validate_dir_entry(entry_result: walkdir::Result<DirEntry>, path: &Path) -> O
             Some(entry)
         }
         Err(e) => {
-            println!("An error occurred whilst walking directory `{}`...", path.display());
+            println!(
+                "An error occurred whilst walking directory `{}`...",
+                path.display()
+            );
             println!("Details: {e:?}");
             None
         }
@@ -194,19 +200,13 @@ fn process_dir_entry<P: AsRef<Path>>(path: P, state: &mut BuildState, config: &B
         })
 }
 
-pub fn generate_typescript_defs(
+pub fn generate_typescript_defs_inner(
     input: Vec<PathBuf>,
-    output: PathBuf,
-    debug: bool,
+    uses_type_interface: bool,
     enable_const_enums: bool,
-) {
+    debug: bool,
+) -> BuildState {
     DEBUG.set(debug);
-
-    let uses_type_interface = output
-        .to_str()
-        .map(|x| x.ends_with(".d.ts"))
-        .unwrap_or(true);
-
     let config = BuildSettings {
         uses_type_interface,
         enable_const_enums,
@@ -227,6 +227,25 @@ pub fn generate_typescript_defs(
             }
         }
     });
+
+    state
+}
+
+pub fn generate_typescript_defs(
+    input: Vec<PathBuf>,
+    output: PathBuf,
+    enable_const_enums: bool,
+    debug: bool,
+) {
+    DEBUG.set(debug);
+
+    let uses_type_interface = output
+        .to_str()
+        .map(|x| x.ends_with(".d.ts"))
+        .unwrap_or(true);
+
+    let state =
+        generate_typescript_defs_inner(input, uses_type_interface, enable_const_enums, debug);
 
     if debug {
         println!("======================================");

@@ -44,17 +44,38 @@ struct Args {
     input: Vec<PathBuf>,
 
     /// Output file (this is the "<name>.d.ts" that gets generated)
-    #[clap(
-        short,
-        long,
-        help = "Required; file to write generated types to",
-        required = true
-    )]
+    #[clap(short, long, help = "Required; file to write generated types to")]
     output: PathBuf,
+
+    /// Output to stdout.
+    #[clap(short, long, help = "Output to stdout, not file", required = false)]
+    stdout: bool,
 }
 
 fn main() {
     let args: Args = Args::parse();
 
-    tsync::generate_typescript_defs(args.input, args.output, args.debug, args.enable_const_enums);
+    let uses_type_interface = args
+        .output
+        .to_str()
+        .map(|x| x.ends_with(".d.ts"))
+        .unwrap_or(true);
+
+    if args.stdout {
+        let content = tsync::generate_typescript_defs_inner(
+            args.input,
+            uses_type_interface,
+            args.enable_const_enums,
+            args.debug,
+        );
+
+        println!("{}", content.types)
+    } else {
+        tsync::generate_typescript_defs(
+            args.input,
+            args.output,
+            args.enable_const_enums,
+            args.debug,
+        );
+    }
 }

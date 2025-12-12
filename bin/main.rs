@@ -44,7 +44,12 @@ struct Args {
     input: Vec<PathBuf>,
 
     /// Output file (this is the "<name>.d.ts" that gets generated)
-    #[clap(short, long, help = "Required; file to write generated types to")]
+    #[clap(
+        short,
+        long,
+        help = "Required; file to write generated types to",
+        required = true
+    )]
     output: PathBuf,
 
     /// Output to stdout.

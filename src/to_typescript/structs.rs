@@ -98,14 +98,23 @@ pub fn process_fields<'a>(
 
         // Check if the field has the serde flatten attribute, if so, skip it
         let has_flatten_attr = utils::get_attribute_arg("serde", "flatten", &field.attrs).is_some();
-        if has_flatten_attr {
+        let serde_skip = utils::get_attribute_arg("serde", "skip", &field.attrs).is_some();
+        let serde_rename = utils::get_attribute_arg("serde", "rename", &field.attrs);
+        if has_flatten_attr || serde_skip {
             continue;
         }
 
         let comments = utils::get_comments(field.attrs);
 
         state.write_comments(&comments, 2);
-        let field_name = if let Some(name_case) = case {
+
+        let field_name = if let Some(field_name) = serde_rename {
+            if field_name.contains(" ") {
+                format!("\"{field_name}\"")
+            } else {
+                field_name
+            }
+        } else if let Some(name_case) = case {
             field
                 .ident
                 .map(|id| id.unraw().to_string().to_case(name_case))

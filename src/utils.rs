@@ -273,3 +273,30 @@ pub(crate) fn parse_serde_case(
             .map(|(_, rule)| *rule)
     })
 }
+
+/// Parse a number automaticly handling radix like rust does.
+/// 0x - Hex notation
+/// 0o - Octal notation
+/// 0b - Binary notation
+pub fn parse_number_autoradix(input: String) -> Option<i32> {
+    let normalized = input.to_lowercase().replace("_", "");
+    let trimmed = normalized.trim();
+
+    if let Some(hex) = trimmed.strip_prefix("0x") {
+        i32::from_str_radix(&hex, 16).ok()
+    } else if let Some(oct) = trimmed.strip_prefix("0o") {
+        i32::from_str_radix(&oct, 8).ok()
+    } else if let Some(bin) = trimmed.strip_prefix("0b") {
+        i32::from_str_radix(&bin, 2).ok()
+    } else {
+        trimmed.parse::<i32>().ok()
+    }
+}
+
+#[test]
+fn test_parse_number() {
+    assert_eq!(parse_number_autoradix("2_3".into()), Some(23));
+    assert_eq!(parse_number_autoradix("0xf".into()), Some(15));
+    assert_eq!(parse_number_autoradix("0b11".into()), Some(3));
+    assert_eq!(parse_number_autoradix("0o1_1".into()), Some(0o1_1));
+}

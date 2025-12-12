@@ -1,3 +1,4 @@
+use crate::utils::parse_number_autoradix;
 use crate::{typescript::convert_type, utils, BuildState};
 use convert_case::{Case, Casing};
 use syn::__private::ToTokens;
@@ -151,7 +152,7 @@ fn add_numeric_enum(
             variant.ident.unraw().to_string()
         };
         if let Some((_, disc)) = variant.discriminant {
-            if let Ok(new_disc) = disc.to_token_stream().to_string().parse::<i32>() {
+            if let Some(new_disc) = parse_number_autoradix(disc.to_token_stream().to_string()) {
                 num = new_disc;
             }
         }

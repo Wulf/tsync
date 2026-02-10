@@ -21,7 +21,8 @@ syn = { version = "2.0", features = ["full", "extra-traits"] }
 proc-macro2 = "1.0.103"
 quote = "1.0.41"
 walkdir = "2.5.0"
-tsync-macro = "0.1.0"
+# Path is uesd localy, the version is used when published to crates.io
+tsync-macro = { path = "tsync-macro", version = "0.2.0"}
 convert_case = "0.8.0"
 state = "0.6.0"
 

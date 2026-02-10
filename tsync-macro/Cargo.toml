@@ -1,6 +1,6 @@
 [package]
 name = "tsync-macro"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Macros for tsync (see https://github.com/Wulf/tsync)"
 license = "MIT OR Apache-2.0"
@@ -12,3 +12,5 @@ name = "tsync_macro"
 path = "src/lib.rs"
 
 [dependencies]
+quote = "1.0.44"
+syn = "2.0.114"
